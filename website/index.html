@@ -365,8 +365,15 @@
     }
 
     .dl-qr-box { display: flex; flex-direction: column; align-items: center; }
-    .dl-qr-img { width: 140px; height: 140px; border-radius: 12px; border: 3px solid var(--gold); margin-bottom: 10px; }
+    .dl-qr-img { width: 160px; height: 160px; border-radius: 12px; border: 3px solid var(--gold); margin-bottom: 10px; }
     .dl-qr-caption { color: var(--muted); font-size: 12px; }
+
+    .dl-badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .dl-badge {
+      background: rgba(255,255,255,0.07); color: var(--muted); border-radius: 20px;
+      padding: 4px 12px; font-size: 12px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .dl-badge-live { background: rgba(76,175,80,0.15); color: #4CAF50; border-color: rgba(76,175,80,0.3); }
 
     .dl-footer-links { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
     .dl-footer-link { display: flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
@@ -715,15 +722,21 @@ POST /auth/verify-otp
       <div class="dl-card dl-card-android">
         <div class="dl-card-icon">🤖</div>
         <h3>Android</h3>
-        <p>Direct install — no Play Store needed</p>
+        <p>Direct APK install — no Play Store needed</p>
         <a href="https://apkweb-production.up.railway.app/taxiapp.apk" class="dl-btn dl-btn-android" download>
           <span class="dl-btn-icon">⬇</span>
-          Download APK
+          Download APK (v1.0)
         </a>
+        <div class="dl-badge-row">
+          <span class="dl-badge">Android 8+</span>
+          <span class="dl-badge">~25 MB</span>
+          <span class="dl-badge">Free</span>
+        </div>
         <div class="dl-steps">
-          <div class="dl-step"><span class="dl-step-num">1</span> Tap Download APK</div>
-          <div class="dl-step"><span class="dl-step-num">2</span> Allow "Install unknown apps" in Settings</div>
-          <div class="dl-step"><span class="dl-step-num">3</span> Open the downloaded file &amp; install</div>
+          <div class="dl-step"><span class="dl-step-num">1</span> Tap "Download APK" button above</div>
+          <div class="dl-step"><span class="dl-step-num">2</span> Go to Settings → Security → Allow unknown apps</div>
+          <div class="dl-step"><span class="dl-step-num">3</span> Open the downloaded file and tap Install</div>
+          <div class="dl-step"><span class="dl-step-num">4</span> Open TaxiApp and register your account</div>
         </div>
       </div>
 
@@ -731,30 +744,40 @@ POST /auth/verify-otp
       <div class="dl-card dl-card-ios">
         <div class="dl-card-icon">🍎</div>
         <h3>iPhone / iPad</h3>
-        <p>Test instantly with Expo Go</p>
-        <a href="https://expo.dev/client" target="_blank" class="dl-btn dl-btn-ios">
+        <p>Run instantly with Expo Go — no App Store needed</p>
+        <a href="https://apps.apple.com/app/expo-go/id982107779" target="_blank" class="dl-btn dl-btn-ios">
           <span class="dl-btn-icon">↗</span>
-          Get Expo Go
+          Get Expo Go (Free)
         </a>
+        <div class="dl-badge-row">
+          <span class="dl-badge">iOS 16+</span>
+          <span class="dl-badge">iPhone &amp; iPad</span>
+          <span class="dl-badge">Free</span>
+        </div>
         <div class="dl-steps">
-          <div class="dl-step"><span class="dl-step-num">1</span> Install Expo Go from App Store</div>
-          <div class="dl-step"><span class="dl-step-num">2</span> Open camera &amp; scan QR code below</div>
-          <div class="dl-step"><span class="dl-step-num">3</span> App loads instantly on your iPhone</div>
+          <div class="dl-step"><span class="dl-step-num">1</span> Download Expo Go from the App Store</div>
+          <div class="dl-step"><span class="dl-step-num">2</span> Open your iPhone camera</div>
+          <div class="dl-step"><span class="dl-step-num">3</span> Scan the QR code on the right</div>
+          <div class="dl-step"><span class="dl-step-num">4</span> TaxiApp launches instantly!</div>
         </div>
       </div>
 
       <!-- Expo Go QR -->
       <div class="dl-card dl-card-qr">
         <div class="dl-card-icon">📱</div>
-        <h3>Scan to Test Now</h3>
-        <p>Works on both Android and iPhone with Expo Go</p>
+        <h3>Scan &amp; Open Now</h3>
+        <p>Android or iPhone — scan with your camera to launch TaxiApp instantly via Expo Go</p>
         <div class="dl-qr-box">
           <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=FFD700&bgcolor=1e1e30&data=https://expo.dev/go"
-            alt="QR Code"
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=FFD700&bgcolor=1e1e30&data=exp%3A%2F%2Ftmdxg.anonymous.ws-anonymous-8081.exp.direct%3A80"
+            alt="TaxiApp QR Code"
             class="dl-qr-img"
           />
-          <p class="dl-qr-caption">Point your camera at this QR code</p>
+          <p class="dl-qr-caption">Works with Expo Go app</p>
+        </div>
+        <div class="dl-badge-row" style="justify-content:center; margin-top:10px;">
+          <span class="dl-badge dl-badge-live">● Live</span>
+          <span class="dl-badge">Android &amp; iOS</span>
         </div>
       </div>
 
