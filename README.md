@@ -179,6 +179,8 @@ npm run start:dev
 
 > Backend runs at: `http://localhost:3000/api/v1`
 
+> **Live Production URL:** `https://taxiapp-api-production.up.railway.app/api/v1`
+
 ### 4. Setup the mobile app
 
 ```bash
