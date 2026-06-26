@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Auto-saving to git...",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; if [ -n \"$f\" ] && echo \"$f\" | grep -q \"^/home/khaled/taxiapp\"; then cd /home/khaled/taxiapp && git add -A && git diff --cached --quiet || git commit -m \"auto: save $(date '+%Y-%m-%d %H:%M:%S')\"; git push 2>/dev/null || true; fi; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
