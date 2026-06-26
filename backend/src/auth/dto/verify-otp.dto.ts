@@ -1,4 +1,4 @@
-import { IsString, Length, Matches } from 'class-validator';
+import { IsIn, IsOptional, IsString, Length, Matches } from 'class-validator';
 
 export class VerifyOtpDto {
   @IsString()
@@ -9,5 +9,8 @@ export class VerifyOtpDto {
   @Length(6, 6)
   code: string;
 
+  @IsOptional()
+  @IsString()
+  @IsIn(['PASSENGER', 'DRIVER'])
   role?: 'PASSENGER' | 'DRIVER';
 }
