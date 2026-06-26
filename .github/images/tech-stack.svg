@@ -1,0 +1,62 @@
+<svg width="1000" height="200" viewBox="0 0 1000 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="50%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="200" fill="url(#bg4)" rx="16"/>
+
+  <text x="500" y="36" font-family="Arial Black" font-size="16" fill="#FFD700" text-anchor="middle" font-weight="900">TECH STACK</text>
+
+  <!-- Tech pills -->
+  <!-- NestJS -->
+  <rect x="25" y="55" width="130" height="110" rx="12" fill="#E0234E" opacity="0.1" stroke="#E0234E" stroke-width="1"/>
+  <text x="90" y="90" font-size="28" text-anchor="middle">🔴</text>
+  <text x="90" y="115" font-family="Arial" font-size="13" fill="#E0234E" text-anchor="middle" font-weight="bold">NestJS</text>
+  <text x="90" y="133" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Backend API</text>
+  <text x="90" y="150" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">v10</text>
+
+  <!-- React Native -->
+  <rect x="165" y="55" width="130" height="110" rx="12" fill="#61DAFB" opacity="0.08" stroke="#61DAFB" stroke-width="1"/>
+  <text x="230" y="90" font-size="28" text-anchor="middle">⚛️</text>
+  <text x="230" y="115" font-family="Arial" font-size="13" fill="#61DAFB" text-anchor="middle" font-weight="bold">React Native</text>
+  <text x="230" y="133" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Mobile App</text>
+  <text x="230" y="150" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Expo SDK 52</text>
+
+  <!-- PostgreSQL -->
+  <rect x="305" y="55" width="130" height="110" rx="12" fill="#336791" opacity="0.15" stroke="#336791" stroke-width="1"/>
+  <text x="370" y="90" font-size="28" text-anchor="middle">🐘</text>
+  <text x="370" y="115" font-family="Arial" font-size="13" fill="#7AB3D6" text-anchor="middle" font-weight="bold">PostgreSQL</text>
+  <text x="370" y="133" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Database</text>
+  <text x="370" y="150" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">v16 + Prisma</text>
+
+  <!-- Socket.io -->
+  <rect x="445" y="55" width="130" height="110" rx="12" fill="#010101" opacity="0.3" stroke="#E8D44D" stroke-width="1"/>
+  <text x="510" y="90" font-size="28" text-anchor="middle">⚡</text>
+  <text x="510" y="115" font-family="Arial" font-size="13" fill="#E8D44D" text-anchor="middle" font-weight="bold">Socket.io</text>
+  <text x="510" y="133" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Real-time</text>
+  <text x="510" y="150" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">WS Gateway</text>
+
+  <!-- Stripe -->
+  <rect x="585" y="55" width="130" height="110" rx="12" fill="#6772E5" opacity="0.12" stroke="#6772E5" stroke-width="1"/>
+  <text x="650" y="90" font-size="28" text-anchor="middle">💳</text>
+  <text x="650" y="115" font-family="Arial" font-size="13" fill="#7B88F0" text-anchor="middle" font-weight="bold">Stripe</text>
+  <text x="650" y="133" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Payments</text>
+  <text x="650" y="150" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">SAR + Card</text>
+
+  <!-- Twilio -->
+  <rect x="725" y="55" width="130" height="110" rx="12" fill="#F22F46" opacity="0.1" stroke="#F22F46" stroke-width="1"/>
+  <text x="790" y="90" font-size="28" text-anchor="middle">📨</text>
+  <text x="790" y="115" font-family="Arial" font-size="13" fill="#F27183" text-anchor="middle" font-weight="bold">Twilio</text>
+  <text x="790" y="133" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">SMS OTP</text>
+  <text x="790" y="150" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">KSA Numbers</text>
+
+  <!-- Firebase -->
+  <rect x="865" y="55" width="110" height="110" rx="12" fill="#FFCA28" opacity="0.08" stroke="#FFCA28" stroke-width="1"/>
+  <text x="920" y="90" font-size="28" text-anchor="middle">🔥</text>
+  <text x="920" y="115" font-family="Arial" font-size="13" fill="#FFCA28" text-anchor="middle" font-weight="bold">Firebase</text>
+  <text x="920" y="133" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">FCM Push</text>
+  <text x="920" y="150" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Notifications</text>
+</svg>

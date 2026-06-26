@@ -1,0 +1,95 @@
+<svg width="1000" height="420" viewBox="0 0 1000 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f1a"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="420" fill="url(#bg3)" rx="16"/>
+
+  <text x="500" y="45" font-family="Arial Black" font-size="22" fill="#FFD700" text-anchor="middle" font-weight="900">✨ KEY FEATURES</text>
+  <line x1="300" y1="55" x2="700" y2="55" stroke="#FFD700" stroke-width="1" opacity="0.3"/>
+
+  <!-- Feature cards: Row 1 -->
+  <!-- Card 1 -->
+  <rect x="30" y="75" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#FFD700" stroke-width="1"/>
+  <text x="115" y="108" font-size="30" text-anchor="middle">📱</text>
+  <text x="115" y="132" font-family="Arial" font-size="12" fill="#FFD700" text-anchor="middle" font-weight="bold">OTP Login</text>
+  <text x="115" y="152" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Phone number auth</text>
+  <text x="115" y="167" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">via Twilio SMS</text>
+  <text x="115" y="182" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">JWT token sessions</text>
+  <text x="115" y="197" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Auto role detection</text>
+
+  <!-- Card 2 -->
+  <rect x="220" y="75" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#61DAFB" stroke-width="1"/>
+  <text x="310" y="108" font-size="30" text-anchor="middle">🗺️</text>
+  <text x="310" y="132" font-family="Arial" font-size="12" fill="#61DAFB" text-anchor="middle" font-weight="bold">Live Tracking</text>
+  <text x="310" y="152" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Real-time GPS updates</text>
+  <text x="310" y="167" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Socket.io events</text>
+  <text x="310" y="182" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Google Maps render</text>
+  <text x="310" y="197" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Driver ETA display</text>
+
+  <!-- Card 3 -->
+  <rect x="410" y="75" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#4CAF50" stroke-width="1"/>
+  <text x="500" y="108" font-size="30" text-anchor="middle">💰</text>
+  <text x="500" y="132" font-family="Arial" font-size="12" fill="#4CAF50" text-anchor="middle" font-weight="bold">Smart Fare</text>
+  <text x="500" y="152" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Haversine distance</text>
+  <text x="500" y="167" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">SAR pricing engine</text>
+  <text x="500" y="182" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Cash or card pay</text>
+  <text x="500" y="197" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Stripe integration</text>
+
+  <!-- Card 4 -->
+  <rect x="600" y="75" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#FF9800" stroke-width="1"/>
+  <text x="690" y="108" font-size="30" text-anchor="middle">🚗</text>
+  <text x="690" y="132" font-family="Arial" font-size="12" fill="#FF9800" text-anchor="middle" font-weight="bold">Driver Flow</text>
+  <text x="690" y="152" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Document upload</text>
+  <text x="690" y="167" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Admin approval gate</text>
+  <text x="690" y="182" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Online/offline toggle</text>
+  <text x="690" y="197" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Earnings dashboard</text>
+
+  <!-- Card 5 -->
+  <rect x="790" y="75" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#E91E63" stroke-width="1"/>
+  <text x="880" y="108" font-size="30" text-anchor="middle">⭐</text>
+  <text x="880" y="132" font-family="Arial" font-size="12" fill="#E91E63" text-anchor="middle" font-weight="bold">Ratings</text>
+  <text x="880" y="152" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Post-trip reviews</text>
+  <text x="880" y="167" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">1-5 star scoring</text>
+  <text x="880" y="182" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Auto driver avg</text>
+  <text x="880" y="197" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Comment support</text>
+
+  <!-- Row 2 cards -->
+  <!-- Card 6 -->
+  <rect x="125" y="235" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#9C27B0" stroke-width="1"/>
+  <text x="215" y="268" font-size="30" text-anchor="middle">🔔</text>
+  <text x="215" y="292" font-family="Arial" font-size="12" fill="#CE93D8" text-anchor="middle" font-weight="bold">Push Notifications</text>
+  <text x="215" y="312" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Firebase FCM</text>
+  <text x="215" y="327" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Trip status alerts</text>
+  <text x="215" y="342" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">New ride requests</text>
+  <text x="215" y="357" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Payment receipts</text>
+
+  <!-- Card 7 -->
+  <rect x="315" y="235" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#00BCD4" stroke-width="1"/>
+  <text x="405" y="268" font-size="30" text-anchor="middle">🛡️</text>
+  <text x="405" y="292" font-family="Arial" font-size="12" fill="#00BCD4" text-anchor="middle" font-weight="bold">Security</text>
+  <text x="405" y="312" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">JWT + Role guards</text>
+  <text x="405" y="327" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Input validation</text>
+  <text x="405" y="342" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">OTP expiry (10min)</text>
+  <text x="405" y="357" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">CORS configured</text>
+
+  <!-- Card 8 -->
+  <rect x="505" y="235" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#8BC34A" stroke-width="1"/>
+  <text x="595" y="268" font-size="30" text-anchor="middle">📊</text>
+  <text x="595" y="292" font-family="Arial" font-size="12" fill="#8BC34A" text-anchor="middle" font-weight="bold">Admin Panel</text>
+  <text x="595" y="312" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Stats dashboard</text>
+  <text x="595" y="327" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Driver approvals</text>
+  <text x="595" y="342" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Revenue tracking</text>
+  <text x="595" y="357" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Trip monitoring</text>
+
+  <!-- Card 9 -->
+  <rect x="695" y="235" width="180" height="145" rx="12" fill="#1e2a4a" stroke="#FF5722" stroke-width="1"/>
+  <text x="785" y="268" font-size="30" text-anchor="middle">🌍</text>
+  <text x="785" y="292" font-family="Arial" font-size="12" fill="#FF7043" text-anchor="middle" font-weight="bold">Saudi Ready</text>
+  <text x="785" y="312" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">SAR currency</text>
+  <text x="785" y="327" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Arabic RTL support</text>
+  <text x="785" y="342" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">KSA phone format</text>
+  <text x="785" y="357" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">Mada payment ready</text>
+</svg>

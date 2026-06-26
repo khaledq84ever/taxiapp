@@ -1,0 +1,111 @@
+<svg width="1000" height="500" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="500" fill="url(#bg6)" rx="16"/>
+
+  <text x="500" y="40" font-family="Arial Black" font-size="20" fill="#FFD700" text-anchor="middle" font-weight="900">API ENDPOINTS — /api/v1</text>
+  <line x1="200" y1="50" x2="800" y2="50" stroke="#FFD700" stroke-width="1" opacity="0.3"/>
+
+  <!-- Column headers -->
+  <text x="65" y="72" font-family="monospace" font-size="11" fill="#555" font-weight="bold">METHOD</text>
+  <text x="140" y="72" font-family="monospace" font-size="11" fill="#555" font-weight="bold">ENDPOINT</text>
+  <text x="460" y="72" font-family="monospace" font-size="11" fill="#555" font-weight="bold">DESCRIPTION</text>
+  <text x="780" y="72" font-family="monospace" font-size="11" fill="#555" font-weight="bold">AUTH</text>
+
+  <!-- AUTH section -->
+  <text x="20" y="95" font-family="Arial" font-size="11" fill="#FFD700" font-weight="bold">── AUTH ──────────────────────────────────────────────────────────────────────</text>
+
+  <rect x="20" y="102" width="55" height="18" rx="4" fill="#4CAF50" opacity="0.8"/>
+  <text x="47" y="115" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">POST</text>
+  <text x="85" y="116" font-family="monospace" font-size="11" fill="#e6edf3">/auth/send-otp</text>
+  <text x="460" y="116" font-family="monospace" font-size="11" fill="#8b949e">Send 6-digit OTP to phone number</text>
+  <text x="780" y="116" font-family="monospace" font-size="11" fill="#666">Public</text>
+
+  <rect x="20" y="123" width="55" height="18" rx="4" fill="#4CAF50" opacity="0.8"/>
+  <text x="47" y="136" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">POST</text>
+  <text x="85" y="137" font-family="monospace" font-size="11" fill="#e6edf3">/auth/verify-otp</text>
+  <text x="460" y="137" font-family="monospace" font-size="11" fill="#8b949e">Verify OTP → returns JWT token + user</text>
+  <text x="780" y="137" font-family="monospace" font-size="11" fill="#666">Public</text>
+
+  <rect x="20" y="144" width="55" height="18" rx="4" fill="#4CAF50" opacity="0.8"/>
+  <text x="47" y="157" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">POST</text>
+  <text x="85" y="158" font-family="monospace" font-size="11" fill="#e6edf3">/auth/refresh-token</text>
+  <text x="460" y="158" font-family="monospace" font-size="11" fill="#8b949e">Refresh expired JWT access token</text>
+  <text x="780" y="158" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <!-- TRIPS section -->
+  <text x="20" y="180" font-family="Arial" font-size="11" fill="#61DAFB" font-weight="bold">── TRIPS ─────────────────────────────────────────────────────────────────────</text>
+
+  <rect x="20" y="187" width="55" height="18" rx="4" fill="#4CAF50" opacity="0.8"/>
+  <text x="47" y="200" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">POST</text>
+  <text x="85" y="201" font-family="monospace" font-size="11" fill="#e6edf3">/trips/estimate</text>
+  <text x="460" y="201" font-family="monospace" font-size="11" fill="#8b949e">Calculate fare + distance (km)</text>
+  <text x="780" y="201" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <rect x="20" y="208" width="55" height="18" rx="4" fill="#4CAF50" opacity="0.8"/>
+  <text x="47" y="221" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">POST</text>
+  <text x="85" y="222" font-family="monospace" font-size="11" fill="#e6edf3">/trips/request</text>
+  <text x="460" y="222" font-family="monospace" font-size="11" fill="#8b949e">Passenger requests a new ride</text>
+  <text x="780" y="222" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <rect x="20" y="229" width="50" height="18" rx="4" fill="#1F6FEB" opacity="0.8"/>
+  <text x="45" y="242" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">GET</text>
+  <text x="85" y="243" font-family="monospace" font-size="11" fill="#e6edf3">/trips/:id</text>
+  <text x="460" y="243" font-family="monospace" font-size="11" fill="#8b949e">Get full trip details with driver info</text>
+  <text x="780" y="243" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <rect x="20" y="250" width="50" height="18" rx="4" fill="#FF9800" opacity="0.8"/>
+  <text x="45" y="263" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">PUT</text>
+  <text x="85" y="264" font-family="monospace" font-size="11" fill="#e6edf3">/trips/:id/accept | arrived | start | complete | cancel</text>
+  <text x="780" y="264" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <!-- DRIVERS section -->
+  <text x="20" y="288" font-family="Arial" font-size="11" fill="#4CAF50" font-weight="bold">── DRIVERS ───────────────────────────────────────────────────────────────────</text>
+
+  <rect x="20" y="295" width="55" height="18" rx="4" fill="#4CAF50" opacity="0.8"/>
+  <text x="47" y="308" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">POST</text>
+  <text x="85" y="309" font-family="monospace" font-size="11" fill="#e6edf3">/drivers/register</text>
+  <text x="460" y="309" font-family="monospace" font-size="11" fill="#8b949e">Submit driver application with vehicle info</text>
+  <text x="780" y="309" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <rect x="20" y="316" width="50" height="18" rx="4" fill="#1F6FEB" opacity="0.8"/>
+  <text x="45" y="329" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">GET</text>
+  <text x="85" y="330" font-family="monospace" font-size="11" fill="#e6edf3">/drivers/nearby?lat=&amp;lng=</text>
+  <text x="460" y="330" font-family="monospace" font-size="11" fill="#8b949e">Get online drivers within 5km radius</text>
+  <text x="780" y="330" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <rect x="20" y="337" width="50" height="18" rx="4" fill="#FF9800" opacity="0.8"/>
+  <text x="45" y="350" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">PUT</text>
+  <text x="85" y="351" font-family="monospace" font-size="11" fill="#e6edf3">/drivers/toggle-online | /drivers/location</text>
+  <text x="460" y="351" font-family="monospace" font-size="11" fill="#8b949e">Go online/offline · Update GPS position</text>
+  <text x="780" y="351" font-family="monospace" font-size="11" fill="#FFD700">JWT</text>
+
+  <!-- ADMIN section -->
+  <text x="20" y="375" font-family="Arial" font-size="11" fill="#CE93D8" font-weight="bold">── ADMIN ─────────────────────────────────────────────────────────────────────</text>
+
+  <rect x="20" y="382" width="50" height="18" rx="4" fill="#1F6FEB" opacity="0.8"/>
+  <text x="45" y="395" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">GET</text>
+  <text x="85" y="396" font-family="monospace" font-size="11" fill="#e6edf3">/admin/stats</text>
+  <text x="460" y="396" font-family="monospace" font-size="11" fill="#8b949e">Dashboard: users, trips, revenue, drivers</text>
+  <text x="780" y="396" font-family="monospace" font-size="11" fill="#E91E63">ADMIN</text>
+
+  <rect x="20" y="403" width="50" height="18" rx="4" fill="#1F6FEB" opacity="0.8"/>
+  <text x="45" y="416" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">GET</text>
+  <text x="85" y="417" font-family="monospace" font-size="11" fill="#e6edf3">/admin/drivers/pending</text>
+  <text x="460" y="417" font-family="monospace" font-size="11" fill="#8b949e">List all pending driver applications</text>
+  <text x="780" y="417" font-family="monospace" font-size="11" fill="#E91E63">ADMIN</text>
+
+  <rect x="20" y="424" width="50" height="18" rx="4" fill="#FF9800" opacity="0.8"/>
+  <text x="45" y="437" font-family="monospace" font-size="10" fill="white" text-anchor="middle" font-weight="bold">PUT</text>
+  <text x="85" y="438" font-family="monospace" font-size="11" fill="#e6edf3">/admin/drivers/:id/approve | reject | suspend</text>
+  <text x="460" y="438" font-family="monospace" font-size="11" fill="#8b949e">Manage driver account status</text>
+  <text x="780" y="438" font-family="monospace" font-size="11" fill="#E91E63">ADMIN</text>
+
+  <!-- Footer -->
+  <line x1="20" y1="460" x2="980" y2="460" stroke="#30363d" stroke-width="1"/>
+  <text x="500" y="480" font-family="monospace" font-size="10" fill="#555" text-anchor="middle">Base URL: http://localhost:3000/api/v1  ·  All responses: JSON  ·  Auth: Bearer &lt;token&gt;</text>
+</svg>

@@ -1,0 +1,70 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#16213e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f3460;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="300" fill="url(#bg)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="900" cy="150" r="200" fill="none" stroke="#FFD700" stroke-width="0.5" opacity="0.15"/>
+  <circle cx="900" cy="150" r="150" fill="none" stroke="#FFD700" stroke-width="0.5" opacity="0.1"/>
+  <circle cx="900" cy="150" r="100" fill="none" stroke="#FFD700" stroke-width="0.5" opacity="0.08"/>
+  <circle cx="100" cy="50" r="80" fill="#FFD700" opacity="0.03"/>
+  <circle cx="1150" cy="280" r="60" fill="#FFD700" opacity="0.04"/>
+
+  <!-- Road lines -->
+  <line x1="0" y1="270" x2="1200" y2="270" stroke="#FFD700" stroke-width="2" opacity="0.2"/>
+  <line x1="0" y1="275" x2="1200" y2="275" stroke="white" stroke-width="1" opacity="0.05" stroke-dasharray="40,20"/>
+
+  <!-- Taxi icon -->
+  <text x="80" y="175" font-size="80" text-anchor="middle" filter="url(#glow)">🚕</text>
+
+  <!-- Title -->
+  <text x="180" y="130" font-family="Arial Black, sans-serif" font-size="72" font-weight="900" fill="url(#gold)" filter="url(#glow)">TaxiApp</text>
+
+  <!-- Subtitle -->
+  <text x="182" y="168" font-family="Arial, sans-serif" font-size="22" fill="#cccccc" letter-spacing="3">RIDE-SHARING PLATFORM FOR SAUDI ARABIA</text>
+
+  <!-- Tag line -->
+  <text x="182" y="210" font-family="Arial, sans-serif" font-size="16" fill="#888888">Book a ride · Track in real-time · Pay securely</text>
+
+  <!-- Badge pills -->
+  <rect x="182" y="228" width="90" height="28" rx="14" fill="#FFD700" opacity="0.15" stroke="#FFD700" stroke-width="1"/>
+  <text x="227" y="247" font-family="Arial, sans-serif" font-size="12" fill="#FFD700" text-anchor="middle">NestJS</text>
+
+  <rect x="282" y="228" width="110" height="28" rx="14" fill="#61DAFB" opacity="0.15" stroke="#61DAFB" stroke-width="1"/>
+  <text x="337" y="247" font-family="Arial, sans-serif" font-size="12" fill="#61DAFB" text-anchor="middle">React Native</text>
+
+  <rect x="402" y="228" width="120" height="28" rx="14" fill="#4CAF50" opacity="0.15" stroke="#4CAF50" stroke-width="1"/>
+  <text x="462" y="247" font-family="Arial, sans-serif" font-size="12" fill="#4CAF50" text-anchor="middle">PostgreSQL</text>
+
+  <rect x="532" y="228" width="110" height="28" rx="14" fill="#E8D44D" opacity="0.15" stroke="#E8D44D" stroke-width="1"/>
+  <text x="587" y="247" font-family="Arial, sans-serif" font-size="12" fill="#E8D44D" text-anchor="middle">Socket.io</text>
+
+  <!-- Right side car animation dots -->
+  <circle cx="1000" cy="150" r="4" fill="#FFD700" opacity="0.6"/>
+  <circle cx="1020" cy="130" r="3" fill="#FFD700" opacity="0.4"/>
+  <circle cx="1040" cy="160" r="5" fill="#FFD700" opacity="0.5"/>
+  <circle cx="1060" cy="140" r="3" fill="#FFD700" opacity="0.3"/>
+  <circle cx="1080" cy="155" r="4" fill="#FFD700" opacity="0.6"/>
+  <circle cx="1100" cy="135" r="3" fill="#FFD700" opacity="0.4"/>
+  <circle cx="1120" cy="150" r="5" fill="#FFD700" opacity="0.5"/>
+
+  <!-- Map pin icons -->
+  <text x="980" y="160" font-size="20" opacity="0.4">📍</text>
+  <text x="1050" y="145" font-size="16" opacity="0.3">📍</text>
+  <text x="1110" y="158" font-size="18" opacity="0.35">📍</text>
+</svg>
