@@ -1,0 +1,340 @@
+================================================================
+TAXIAPP - FULL PROJECT ROADMAP & BUILD PROMPT
+================================================================
+Created: 2026-06-26
+Owner: khaledq84ever@gmail.com
+================================================================
+
+
+================================================================
+MASTER BUILD PROMPT
+================================================================
+
+Build a full-stack taxi/ride-sharing app called "TaxiApp" similar to Uber and Careem,
+targeting the Saudi Arabian market.
+
+The app has 3 sides:
+1. Passenger mobile app (React Native)
+2. Driver mobile app (React Native - same codebase, different mode)
+3. Admin web dashboard (React.js)
+
+Backend: Node.js + NestJS + PostgreSQL + Socket.io + Redis
+
+Core features:
+- Phone number OTP registration (Twilio)
+- Google Maps with real-time driver tracking
+- Ride booking with fare estimation
+- In-app payments (Stripe + cash option)
+- Driver document verification flow
+- Push notifications (Firebase FCM)
+- Arabic + English language support (RTL)
+- Saudi city coverage (Riyadh, Jeddah, Dammam)
+
+Build production-ready, scalable, and secure code.
+Use JWT auth, role-based access (passenger/driver/admin).
+Follow REST API standards with proper error handling.
+
+
+================================================================
+RECOMMENDED TECH STACK
+================================================================
+
+Layer           | Technology          | Why
+----------------|---------------------|----------------------------
+Mobile App      | React Native        | One codebase iOS + Android
+Backend API     | Node.js + NestJS    | Fast, scalable, real-time
+Database        | PostgreSQL          | Users, trips, payments
+Real-time       | Socket.io           | Live driver tracking
+Cache/Sessions  | Redis               | Fast data, session storage
+Maps            | Google Maps API     | Best Saudi coverage
+Auth            | OTP SMS (Twilio)    | Standard in Saudi apps
+Payments        | Stripe + Mada       | Local Saudi payment support
+File Storage    | AWS S3 / Cloudinary | Driver license, photos
+Push Notifs     | Firebase FCM        | iOS + Android notifications
+State Mgmt      | Redux Toolkit       | Mobile app state
+Admin UI        | React.js            | Web dashboard
+
+
+================================================================
+PROJECT FOLDER STRUCTURE
+================================================================
+
+taxiapp/
+├── backend/
+│   ├── src/
+│   │   ├── auth/
+│   │   ├── users/
+│   │   ├── drivers/
+│   │   ├── trips/
+│   │   ├── payments/
+│   │   ├── notifications/
+│   │   └── admin/
+│   ├── prisma/
+│   │   └── schema.prisma
+│   ├── .env
+│   └── package.json
+│
+├── mobile/
+│   ├── src/
+│   │   ├── screens/
+│   │   │   ├── passenger/
+│   │   │   └── driver/
+│   │   ├── components/
+│   │   ├── navigation/
+│   │   ├── store/          (Redux Toolkit)
+│   │   ├── services/       (API calls)
+│   │   └── utils/
+│   └── package.json
+│
+├── admin/
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   └── services/
+│   └── package.json
+│
+└── README.md
+
+
+================================================================
+PHASE 1 - PROJECT SETUP (Week 1)
+================================================================
+
+Tasks:
+- [ ] Initialize all 3 projects (backend, mobile, admin)
+- [ ] Setup PostgreSQL database
+- [ ] Setup Redis for caching & sessions
+- [ ] Configure environment variables
+- [ ] Setup Git repository
+- [ ] Deploy backend to Railway/Render (free tier)
+
+
+================================================================
+PHASE 2 - DATABASE DESIGN (Week 1-2)
+================================================================
+
+TABLE: Users
+- id, name, phone, email
+- role (passenger/driver/admin)
+- profile_photo, created_at
+- is_active, is_verified
+
+TABLE: Drivers
+- id, user_id (FK to Users)
+- license_number, license_photo
+- car_make, car_model, car_year, car_color
+- car_plate, car_photo
+- status (pending/approved/rejected/suspended)
+- current_lat, current_lng
+- is_online, rating
+- total_earnings
+
+TABLE: Trips
+- id, passenger_id, driver_id
+- pickup_address, pickup_lat, pickup_lng
+- dropoff_address, dropoff_lat, dropoff_lng
+- status (requested/accepted/arrived/started/completed/cancelled)
+- fare_estimate, final_fare
+- payment_method (cash/card)
+- payment_status
+- created_at, started_at, completed_at
+
+TABLE: Ratings
+- id, trip_id, rater_id, rated_id
+- score (1-5), comment
+- created_at
+
+TABLE: Payments
+- id, trip_id, amount, currency
+- method, status, stripe_payment_id
+- created_at
+
+TABLE: Notifications
+- id, user_id, title, body
+- type, is_read, data (JSON)
+- created_at
+
+
+================================================================
+PHASE 3 - BACKEND API ENDPOINTS (Week 2-3)
+================================================================
+
+AUTH
+  POST /auth/send-otp           Send SMS OTP to phone
+  POST /auth/verify-otp         Verify OTP + return JWT token
+  POST /auth/refresh-token      Refresh JWT token
+
+USERS
+  GET  /users/profile           Get my profile
+  PUT  /users/profile           Update profile
+  POST /users/upload-photo      Upload profile picture
+
+DRIVERS
+  POST /drivers/register        Submit driver application
+  GET  /drivers/status          Check approval status
+  PUT  /drivers/toggle-online   Go online/offline
+  PUT  /drivers/location        Update GPS location
+  GET  /drivers/earnings        View earnings history
+  GET  /drivers/nearby          Get nearby available drivers
+
+TRIPS
+  POST /trips/estimate          Calculate fare estimate
+  POST /trips/request           Passenger requests a ride
+  GET  /trips/:id               Get trip details
+  PUT  /trips/:id/accept        Driver accepts trip
+  PUT  /trips/:id/arrived       Driver arrived at pickup
+  PUT  /trips/:id/start         Trip started
+  PUT  /trips/:id/complete      Trip completed
+  PUT  /trips/:id/cancel        Cancel trip
+  GET  /trips/history           My trip history
+
+PAYMENTS
+  POST /payments/create-intent  Create Stripe payment intent
+  POST /payments/confirm        Confirm payment
+
+RATINGS
+  POST /ratings                 Submit rating after trip
+
+ADMIN
+  GET  /admin/drivers/pending   List pending driver applications
+  PUT  /admin/drivers/:id/approve
+  PUT  /admin/drivers/:id/reject
+  GET  /admin/users             All users list
+  GET  /admin/trips             All trips list
+  GET  /admin/stats             Dashboard statistics
+
+
+================================================================
+PHASE 4 - REAL-TIME SOCKET.IO EVENTS (Week 3)
+================================================================
+
+Driver Emits:
+  driver:location-update    { lat, lng, driverId }
+  driver:trip-accepted      { tripId, driverInfo, eta }
+  driver:arrived            { tripId }
+  driver:trip-started       { tripId }
+  driver:trip-completed     { tripId, finalFare }
+
+Passenger Emits:
+  passenger:trip-request    { pickup, dropoff, passengerId }
+  passenger:cancel-trip     { tripId }
+
+Server Emits to Passenger:
+  server:driver-found       { driverInfo, eta, location }
+  server:driver-location    { lat, lng }  (live updates)
+  server:no-drivers         {}
+  server:trip-update        { status }
+
+Server Emits to Driver:
+  server:new-trip-request   { tripDetails, passengerInfo }
+  server:trip-cancelled     { tripId }
+
+
+================================================================
+PHASE 5 - MOBILE APP SCREENS (Week 3-4)
+================================================================
+
+PASSENGER SCREENS:
+  1.  Splash Screen
+  2.  Onboarding (3 slides)
+  3.  Phone Number Entry
+  4.  OTP Verification
+  5.  Home Map Screen          (Main screen with map + nearby drivers)
+  6.  Enter Destination
+  7.  Ride Options             (economy / comfort / premium)
+  8.  Fare Estimate Screen
+  9.  Finding Driver Screen    (Animated searching)
+  10. Driver Found Screen      (Driver info + ETA)
+  11. Live Tracking Screen     (Driver moving on map)
+  12. Trip Started Screen
+  13. Trip Completed Screen    (Fare summary)
+  14. Rating Screen
+  15. Payment Screen
+  16. Trip History
+  17. Profile Screen
+  18. Settings                 (language, notifications)
+
+DRIVER SCREENS:
+  1.  Registration Screen
+  2.  Document Upload Screen   (License + car photos)
+  3.  Pending Approval Screen
+  4.  Driver Home              (online/offline toggle + map)
+  5.  New Trip Request Popup   (Accept/Reject with countdown timer)
+  6.  Navigate to Passenger
+  7.  Passenger Picked Up
+  8.  Navigate to Destination
+  9.  Trip Complete + Earnings
+  10. Earnings Dashboard
+  11. Driver Profile
+
+
+================================================================
+PHASE 6 - ADMIN DASHBOARD (Week 4-5)
+================================================================
+
+Pages:
+  1. Login
+  2. Dashboard Stats          (trips, revenue, active drivers, users)
+  3. Driver Applications      (pending / approve / reject)
+  4. All Drivers List
+  5. All Passengers List
+  6. All Trips                (live + history)
+  7. Payments & Revenue
+  8. Push Notifications       (send to all / drivers / passengers)
+  9. Settings                 (commission rate, base fare, per-km rate)
+
+
+================================================================
+PHASE 7 - TESTING & LAUNCH (Week 5-6)
+================================================================
+
+Testing:
+  - [ ] Unit tests for all API endpoints
+  - [ ] Test OTP SMS flow
+  - [ ] Test complete trip flow end-to-end
+  - [ ] Test payment flow (card + cash)
+  - [ ] Test real-time GPS tracking
+  - [ ] Test on Android + iOS physical devices
+  - [ ] Test Arabic RTL layout
+
+Deployment:
+  - [ ] Backend       → Railway or AWS EC2
+  - [ ] Database      → Railway PostgreSQL or Supabase
+  - [ ] Redis         → Railway Redis or Upstash
+  - [ ] Admin Panel   → Vercel or Netlify
+  - [ ] Mobile App    → Google Play Store + Apple App Store
+  - [ ] Domain + SSL certificate
+  - [ ] Error monitoring → Sentry
+
+
+================================================================
+SERVICES & APIS NEEDED
+================================================================
+
+Service         | Purpose                | Cost
+----------------|------------------------|----------------------
+Twilio          | OTP SMS                | Pay per SMS
+Google Maps API | Maps + directions      | Free tier available
+Stripe          | Card payments          | 2.9% per transaction
+Firebase FCM    | Push notifications     | Free
+AWS S3          | Photo/file storage     | Free tier
+Railway         | Backend hosting        | $5/month
+Supabase        | PostgreSQL database    | Free tier
+Sentry          | Error monitoring       | Free tier
+
+
+================================================================
+BUILD ORDER (RECOMMENDED)
+================================================================
+
+Week 1  → Project setup + Database design + Schema
+Week 2  → Auth API + User/Driver registration APIs
+Week 3  → Trips API + Socket.io real-time tracking
+Week 4  → Mobile app - Passenger flow
+Week 5  → Mobile app - Driver flow + Admin dashboard
+Week 6  → Testing + Deployment + App Store submission
+
+
+================================================================
+END OF ROADMAP
+================================================================
