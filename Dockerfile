@@ -11,4 +11,4 @@ RUN npm run build
 RUN ls -la dist/ && echo "Build OK"
 
 EXPOSE 3000
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
