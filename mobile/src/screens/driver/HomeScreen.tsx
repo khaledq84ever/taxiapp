@@ -1,79 +1,274 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Switch, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  Switch,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { driversApi } from '../../services/api';
+import { driversApi, tripsApi } from '../../services/api';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
+import { socketService } from '../../services/socket';
 
 export default function DriverHomeScreen({ navigation }: any) {
   const { user } = useSelector((s: RootState) => s.auth);
   const [isOnline, setIsOnline] = useState(false);
-  const [location, setLocation] = useState<any>(null);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [heading, setHeading] = useState<number>(-1);
   const [earnings, setEarnings] = useState(0);
+  const [tripRequest, setTripRequest] = useState<any>(null);
+  const [accepting, setAccepting] = useState(false);
+  const mapRef = useRef<MapView>(null);
+  const locationSubRef = useRef<Location.LocationSubscription | null>(null);
 
+  // Initial setup: get location + load driver status
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
       const loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc.coords);
+      setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
 
-      const driver = await driversApi.getStatus();
-      setIsOnline(driver.data.isOnline);
-      setEarnings(driver.data.totalEarnings);
+      try {
+        const driver = await driversApi.getStatus();
+        setIsOnline(driver.data.isOnline);
+        setEarnings(driver.data.totalEarnings);
+      } catch {
+        // driver not registered yet
+      }
     })();
   }, []);
 
+  // Real-time location stream while online
   useEffect(() => {
-    if (!isOnline || !location) return;
-    const interval = setInterval(async () => {
-      const loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc.coords);
-      await driversApi.updateLocation(loc.coords.latitude, loc.coords.longitude);
-    }, 5000);
-    return () => clearInterval(interval);
+    if (!isOnline) {
+      locationSubRef.current?.remove();
+      locationSubRef.current = null;
+      return;
+    }
+
+    const startWatching = async () => {
+      locationSubRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 3000,
+          distanceInterval: 15,
+        },
+        (loc) => {
+          const pos = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          const h = loc.coords.heading ?? -1;
+          setLocation(pos);
+          setHeading(h);
+          socketService.emit('driver:location-update', {
+            lat: pos.latitude,
+            lng: pos.longitude,
+            heading: h,
+          });
+          // Smoothly follow driver on map
+          mapRef.current?.animateToRegion(
+            { ...pos, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+            400,
+          );
+        },
+      );
+    };
+
+    startWatching();
+
+    return () => {
+      locationSubRef.current?.remove();
+      locationSubRef.current = null;
+    };
+  }, [isOnline]);
+
+  // Socket: listen for trip requests when online
+  useEffect(() => {
+    if (!isOnline) {
+      socketService.off('server:new-trip-request');
+      return;
+    }
+
+    socketService.connect().then(() => {
+      socketService.on('server:new-trip-request', (data) => {
+        setTripRequest(data);
+      });
+    }).catch(() => {
+      Alert.alert('Connection', 'Could not connect to server. Check your internet.');
+    });
+
+    return () => {
+      socketService.off('server:new-trip-request');
+    };
   }, [isOnline]);
 
   const handleToggleOnline = async (value: boolean) => {
     try {
       await driversApi.toggleOnline(value);
       setIsOnline(value);
+      if (!value) setTripRequest(null);
     } catch (e: any) {
-      Alert.alert('Error', e.response?.data?.message || 'Cannot go online');
+      Alert.alert('Error', e.response?.data?.message || 'Cannot change status');
     }
   };
+
+  const handleAcceptTrip = async () => {
+    if (!tripRequest?.trip?.id) return;
+    setAccepting(true);
+    try {
+      await tripsApi.accept(tripRequest.trip.id);
+      socketService.emit('driver:trip-accepted', { tripId: tripRequest.trip.id });
+      const acceptedTrip = {
+        ...tripRequest.trip,
+        status: 'ACCEPTED',
+        passenger: tripRequest.passenger,
+      };
+      setTripRequest(null);
+      navigation.navigate('ActiveTrip', { trip: acceptedTrip });
+    } catch (e: any) {
+      Alert.alert('Error', e.response?.data?.message || 'Could not accept trip');
+      setTripRequest(null);
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleDeclineTrip = () => setTripRequest(null);
 
   return (
     <View style={styles.container}>
       {location && (
         <MapView
+          ref={mapRef}
           style={styles.map}
           initialRegion={{
-            latitude: location.latitude, longitude: location.longitude,
-            latitudeDelta: 0.01, longitudeDelta: 0.01,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
           }}
-          showsUserLocation
-        />
+        >
+          <Marker
+            coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            flat
+          >
+            <View style={[
+              styles.selfMarker,
+              heading >= 0 && { transform: [{ rotate: `${heading}deg` }] },
+            ]}>
+              <Text style={styles.selfMarkerText}>🚗</Text>
+            </View>
+          </Marker>
+        </MapView>
       )}
+
+      {/* Status panel */}
       <View style={styles.panel}>
         <View style={styles.statusRow}>
           <View>
             <Text style={styles.name}>{user?.name || 'Driver'}</Text>
             <Text style={[styles.status, isOnline && styles.statusOnline]}>
-              {isOnline ? '🟢 Online' : '🔴 Offline'}
+              {isOnline ? '🟢 Online — waiting for trips' : '🔴 Offline'}
             </Text>
           </View>
-          <Switch value={isOnline} onValueChange={handleToggleOnline} trackColor={{ true: '#4CAF50' }} />
+          <Switch
+            value={isOnline}
+            onValueChange={handleToggleOnline}
+            trackColor={{ false: '#ddd', true: '#16a34a' }}
+            thumbColor={isOnline ? '#fff' : '#fff'}
+          />
         </View>
+
         <View style={styles.earningsBox}>
-          <Text style={styles.earningsLabel}>Today's Earnings</Text>
+          <Text style={styles.earningsLabel}>Total Earnings</Text>
           <Text style={styles.earningsValue}>{earnings.toFixed(2)} SAR</Text>
         </View>
-        <TouchableOpacity style={styles.earningsBtn} onPress={() => navigation.navigate('DriverEarnings')}>
-          <Text style={styles.earningsBtnText}>View Full Earnings</Text>
+
+        <TouchableOpacity
+          style={styles.earningsBtn}
+          onPress={() => navigation.navigate('DriverEarnings')}
+        >
+          <Text style={styles.earningsBtnText}>View Earnings History</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Trip request modal */}
+      <Modal visible={!!tripRequest} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>🚖 New Trip Request</Text>
+
+            <View style={styles.passengerRow}>
+              <Text style={styles.passengerAvatar}>👤</Text>
+              <Text style={styles.passengerName}>
+                {tripRequest?.passenger?.name || 'Passenger'}
+              </Text>
+            </View>
+
+            <View style={styles.addressBlock}>
+              <View style={styles.addrRow}>
+                <Text style={styles.addrIcon}>📍</Text>
+                <View style={styles.addrTexts}>
+                  <Text style={styles.addrLabel}>Pickup</Text>
+                  <Text style={styles.addrValue} numberOfLines={2}>
+                    {tripRequest?.trip?.pickupAddress}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.addrDivider} />
+              <View style={styles.addrRow}>
+                <Text style={styles.addrIcon}>🏁</Text>
+                <View style={styles.addrTexts}>
+                  <Text style={styles.addrLabel}>Dropoff</Text>
+                  <Text style={styles.addrValue} numberOfLines={2}>
+                    {tripRequest?.trip?.dropoffAddress}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.fareRow}>
+              <View style={styles.fareItem}>
+                <Text style={styles.fareLabel}>Fare</Text>
+                <Text style={styles.fareValue}>{tripRequest?.trip?.fareEstimate} SAR</Text>
+              </View>
+              <View style={styles.fareItem}>
+                <Text style={styles.fareLabel}>Distance</Text>
+                <Text style={styles.fareValue}>{tripRequest?.trip?.distanceKm} km</Text>
+              </View>
+              <View style={styles.fareItem}>
+                <Text style={styles.fareLabel}>Payment</Text>
+                <Text style={styles.fareValue}>
+                  {tripRequest?.trip?.paymentMethod === 'CASH' ? '💵 Cash' : '💳 Card'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.declineBtn} onPress={handleDeclineTrip}>
+                <Text style={styles.declineText}>Decline</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.acceptBtn}
+                onPress={handleAcceptTrip}
+                disabled={accepting}
+              >
+                {accepting ? (
+                  <ActivityIndicator color="#1a1a2e" />
+                ) : (
+                  <Text style={styles.acceptText}>Accept Trip</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -81,14 +276,119 @@ export default function DriverHomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  panel: { backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24, elevation: 10 },
-  statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+
+  selfMarker: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#FFD700',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+  },
+  selfMarkerText: { fontSize: 24 },
+
+  panel: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   name: { fontSize: 18, fontWeight: 'bold', color: '#1a1a2e' },
-  status: { color: '#999', marginTop: 4 },
-  statusOnline: { color: '#4CAF50' },
-  earningsBox: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 12 },
-  earningsLabel: { color: '#666' },
+  status: { color: '#999', marginTop: 4, fontSize: 13 },
+  statusOnline: { color: '#16a34a' },
+
+  earningsBox: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  earningsLabel: { color: '#666', fontSize: 13 },
   earningsValue: { fontSize: 28, fontWeight: 'bold', color: '#1a1a2e', marginTop: 4 },
+
   earningsBtn: { alignItems: 'center', padding: 12 },
   earningsBtnText: { color: '#FFD700', fontWeight: 'bold' },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+  },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a2e', marginBottom: 16 },
+
+  passengerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  passengerAvatar: { fontSize: 28, marginRight: 12 },
+  passengerName: { fontSize: 17, fontWeight: '600', color: '#1a1a2e' },
+
+  addressBlock: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+  },
+  addrRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  addrIcon: { fontSize: 18, marginRight: 10, marginTop: 2 },
+  addrTexts: { flex: 1 },
+  addrLabel: { color: '#999', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
+  addrValue: { color: '#1a1a2e', fontSize: 14, fontWeight: '500', marginTop: 2 },
+  addrDivider: { height: 1, backgroundColor: '#e5e5e5', marginVertical: 10 },
+
+  fareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+  },
+  fareItem: { alignItems: 'center' },
+  fareLabel: { color: '#999', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fareValue: { color: '#1a1a2e', fontSize: 16, fontWeight: 'bold', marginTop: 4 },
+
+  modalActions: { flexDirection: 'row', gap: 12 },
+  declineBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: '#ef4444',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  declineText: { color: '#ef4444', fontWeight: 'bold', fontSize: 16 },
+  acceptBtn: {
+    flex: 2,
+    backgroundColor: '#FFD700',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  acceptText: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 16 },
 });

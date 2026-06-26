@@ -1,0 +1,346 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { socketService } from '../../services/socket';
+import { tripsApi } from '../../services/api';
+
+type TripStatus = 'ACCEPTED' | 'DRIVER_ARRIVED' | 'IN_PROGRESS' | 'COMPLETED';
+
+const ACTION_MAP: Record<string, { label: string; color: string }> = {
+  ACCEPTED: { label: "I've Arrived at Pickup", color: '#FFD700' },
+  DRIVER_ARRIVED: { label: 'Start Trip', color: '#16a34a' },
+  IN_PROGRESS: { label: 'Complete Trip', color: '#2563eb' },
+};
+
+export default function ActiveTripScreen({ navigation, route }: any) {
+  const { trip } = route.params as { trip: any };
+  const mapRef = useRef<MapView>(null);
+
+  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [heading, setHeading] = useState<number>(-1);
+  const [passengerLocation, setPassengerLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [status, setStatus] = useState<TripStatus>((trip.status as TripStatus) || 'ACCEPTED');
+  const [eta, setEta] = useState<{ minutes: number; distanceKm: number } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const latestMyLoc = useRef<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+
+    const setup = async () => {
+      const { status: perm } = await Location.requestForegroundPermissionsAsync();
+      if (perm !== 'granted') return;
+
+      // Stream real-time GPS — emit to socket every update, DB saves are throttled server-side
+      sub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 2000,
+          distanceInterval: 10, // only fire when moved ≥ 10 m
+        },
+        (loc) => {
+          const pos = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+          const h = loc.coords.heading ?? -1;
+          latestMyLoc.current = pos;
+          setMyLocation(pos);
+          setHeading(h);
+          socketService.emit('driver:location-update', { ...pos, heading: h });
+
+          // Keep map centered on driver
+          mapRef.current?.animateToRegion(
+            {
+              latitude: pos.lat,
+              longitude: pos.lng,
+              latitudeDelta: 0.008,
+              longitudeDelta: 0.008,
+            },
+            400,
+          );
+        },
+      );
+
+      socketService.on('server:passenger-location', (data) => {
+        const pLoc = { lat: data.lat, lng: data.lng };
+        setPassengerLocation(pLoc);
+        setEta({ minutes: data.etaMinutes, distanceKm: data.distanceKm });
+
+        if (mapRef.current && latestMyLoc.current) {
+          mapRef.current.fitToCoordinates(
+            [
+              { latitude: latestMyLoc.current.lat, longitude: latestMyLoc.current.lng },
+              { latitude: pLoc.lat, longitude: pLoc.lng },
+            ],
+            { edgePadding: { top: 80, right: 80, bottom: 320, left: 80 }, animated: true },
+          );
+        }
+      });
+
+      socketService.on('server:trip-cancelled', () => {
+        Alert.alert('Trip Cancelled', 'The passenger has cancelled the trip.', [
+          { text: 'OK', onPress: () => navigation.replace('DriverHome') },
+        ]);
+      });
+    };
+
+    setup();
+
+    return () => {
+      sub?.remove();
+      socketService.off('server:passenger-location');
+      socketService.off('server:trip-cancelled');
+    };
+  }, []);
+
+  const handleAction = async () => {
+    setActionLoading(true);
+    try {
+      if (status === 'ACCEPTED') {
+        await tripsApi.markArrived(trip.id);
+        setStatus('DRIVER_ARRIVED');
+        socketService.emit('driver:trip-accepted', { tripId: trip.id });
+      } else if (status === 'DRIVER_ARRIVED') {
+        await tripsApi.start(trip.id);
+        setStatus('IN_PROGRESS');
+      } else if (status === 'IN_PROGRESS') {
+        await tripsApi.complete(trip.id);
+        socketService.emit('driver:trip-completed', { tripId: trip.id });
+        Alert.alert('Trip Completed! 🎉', `Fare: ${trip.fareEstimate} SAR`, [
+          { text: 'OK', onPress: () => navigation.replace('DriverHome') },
+        ]);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.response?.data?.message || 'Action failed. Try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const targetCoord =
+    status === 'IN_PROGRESS'
+      ? { latitude: trip.dropoffLat, longitude: trip.dropoffLng }
+      : { latitude: trip.pickupLat, longitude: trip.pickupLng };
+
+  if (!myLocation) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#FFD700" />
+      </View>
+    );
+  }
+
+  const action = ACTION_MAP[status];
+  const passenger = trip.passenger;
+  const carRotation = heading >= 0 ? heading : 0;
+
+  return (
+    <View style={styles.container}>
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        initialRegion={{
+          latitude: myLocation.lat,
+          longitude: myLocation.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
+      >
+        {/* Driver marker — rotates with heading */}
+        <Marker
+          coordinate={{ latitude: myLocation.lat, longitude: myLocation.lng }}
+          anchor={{ x: 0.5, y: 0.5 }}
+          flat
+        >
+          <View style={[styles.driverMarker, { transform: [{ rotate: `${carRotation}deg` }] }]}>
+            <Text style={styles.driverMarkerText}>🚗</Text>
+          </View>
+        </Marker>
+
+        {/* Pickup / destination pin */}
+        <Marker
+          coordinate={targetCoord}
+          title={status === 'IN_PROGRESS' ? 'Destination' : 'Pickup Point'}
+          pinColor={status === 'IN_PROGRESS' ? '#2563eb' : '#FFD700'}
+        />
+
+        {/* Live passenger location */}
+        {passengerLocation && (
+          <Marker
+            coordinate={{ latitude: passengerLocation.lat, longitude: passengerLocation.lng }}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <View style={styles.passengerMarker}>
+              <Text style={styles.passengerMarkerText}>👤</Text>
+            </View>
+          </Marker>
+        )}
+      </MapView>
+
+      {/* Bottom sheet */}
+      <ScrollView style={styles.sheet} contentContainerStyle={styles.sheetContent}>
+        {eta ? (
+          <View style={styles.etaRow}>
+            <View>
+              <Text style={styles.etaLabel}>
+                {status === 'IN_PROGRESS' ? 'ETA to destination' : 'ETA to pickup'}
+              </Text>
+              <Text style={styles.etaValue}>{eta.minutes} min · {eta.distanceKm} km</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.etaRow}>
+            <Text style={styles.etaLabel}>Waiting for passenger location...</Text>
+          </View>
+        )}
+
+        {passenger && (
+          <View style={styles.passengerCard}>
+            <Text style={styles.passengerName}>{passenger.name || 'Passenger'}</Text>
+            <Text style={styles.passengerPhone}>{passenger.phone}</Text>
+          </View>
+        )}
+
+        <View style={styles.addressBlock}>
+          <View style={styles.addressRow}>
+            <Text style={styles.addrIcon}>📍</Text>
+            <View style={styles.addrTexts}>
+              <Text style={styles.addrLabel}>Pickup</Text>
+              <Text style={styles.addrValue} numberOfLines={2}>{trip.pickupAddress}</Text>
+            </View>
+          </View>
+          <View style={styles.addressDivider} />
+          <View style={styles.addressRow}>
+            <Text style={styles.addrIcon}>🏁</Text>
+            <View style={styles.addrTexts}>
+              <Text style={styles.addrLabel}>Dropoff</Text>
+              <Text style={styles.addrValue} numberOfLines={2}>{trip.dropoffAddress}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.fareRow}>
+          <Text style={styles.fareLabel}>Fare Estimate</Text>
+          <Text style={styles.fareValue}>{trip.fareEstimate} SAR</Text>
+        </View>
+
+        {action && (
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: action.color }]}
+            onPress={handleAction}
+            disabled={actionLoading}
+          >
+            {actionLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.actionText}>{action.label}</Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  map: { flex: 1 },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '50%',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  sheetContent: { padding: 20, paddingBottom: 32 },
+
+  etaRow: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  etaLabel: { color: '#999', fontSize: 12 },
+  etaValue: { color: '#FFD700', fontSize: 20, fontWeight: 'bold', marginTop: 2 },
+
+  passengerCard: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  passengerName: { fontSize: 17, fontWeight: 'bold', color: '#1a1a2e' },
+  passengerPhone: { color: '#666', marginTop: 3 },
+
+  addressBlock: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  addressRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  addrIcon: { fontSize: 18, marginRight: 10, marginTop: 2 },
+  addrTexts: { flex: 1 },
+  addrLabel: { color: '#999', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
+  addrValue: { color: '#1a1a2e', fontSize: 14, fontWeight: '500', marginTop: 2 },
+  addressDivider: { height: 1, backgroundColor: '#e5e5e5', marginVertical: 10 },
+
+  fareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    marginBottom: 14,
+  },
+  fareLabel: { color: '#666', fontSize: 15 },
+  fareValue: { fontSize: 20, fontWeight: 'bold', color: '#1a1a2e' },
+
+  actionBtn: {
+    borderRadius: 14,
+    padding: 18,
+    alignItems: 'center',
+  },
+  actionText: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 17 },
+
+  driverMarker: {
+    width: 46,
+    height: 46,
+    backgroundColor: '#FFD700',
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  driverMarkerText: { fontSize: 26 },
+  passengerMarker: {
+    width: 38,
+    height: 38,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  passengerMarkerText: { fontSize: 22 },
+});
