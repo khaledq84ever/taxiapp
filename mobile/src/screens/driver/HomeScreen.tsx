@@ -190,12 +190,22 @@ export default function DriverHomeScreen({ navigation }: any) {
           <Text style={styles.earningsValue}>{earnings.toFixed(2)} SAR</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.earningsBtn}
-          onPress={() => navigation.navigate('DriverEarnings')}
-        >
-          <Text style={styles.earningsBtnText}>View Earnings History</Text>
-        </TouchableOpacity>
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => navigation.navigate('DriverEarnings')}
+          >
+            <Text style={styles.quickBtnIcon}>💰</Text>
+            <Text style={styles.quickBtnText}>Earnings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Text style={styles.quickBtnIcon}>👤</Text>
+            <Text style={styles.quickBtnText}>Profile</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Trip request modal */}
@@ -319,8 +329,17 @@ const styles = StyleSheet.create({
   earningsLabel: { color: '#666', fontSize: 13 },
   earningsValue: { fontSize: 28, fontWeight: 'bold', color: '#1a1a2e', marginTop: 4 },
 
-  earningsBtn: { alignItems: 'center', padding: 12 },
-  earningsBtnText: { color: '#FFD700', fontWeight: 'bold' },
+  quickActions: { flexDirection: 'row', gap: 10 },
+  quickBtn: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 14,
+    padding: 14,
+    gap: 4,
+  },
+  quickBtnIcon: { fontSize: 24 },
+  quickBtnText: { color: '#1a1a2e', fontWeight: '600', fontSize: 13 },
 
   // Modal
   modalOverlay: {

@@ -7,8 +7,9 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { socketService } from '../../services/socket';
 import { tripsApi } from '../../services/api';
@@ -142,6 +143,20 @@ export default function ActiveTripScreen({ navigation, route }: any) {
   const passenger = trip.passenger;
   const carRotation = heading >= 0 ? heading : 0;
 
+  const handleSOS = () => {
+    Alert.alert('Emergency', 'Call emergency services?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Call 911', style: 'destructive', onPress: () => Linking.openURL('tel:911') },
+    ]);
+  };
+
+  const handleChat = () => {
+    navigation.navigate('Chat', {
+      tripId: trip.id,
+      otherName: passenger?.name || 'Passenger',
+    });
+  };
+
   return (
     <View style={styles.container}>
       <MapView
@@ -164,6 +179,17 @@ export default function ActiveTripScreen({ navigation, route }: any) {
             <Text style={styles.driverMarkerText}>🚗</Text>
           </View>
         </Marker>
+
+        {/* Route line: driver → target */}
+        <Polyline
+          coordinates={[
+            { latitude: myLocation.lat, longitude: myLocation.lng },
+            targetCoord,
+          ]}
+          strokeColor="#FFD700"
+          strokeWidth={3}
+          lineDashPattern={[8, 4]}
+        />
 
         {/* Pickup / destination pin */}
         <Marker
@@ -230,6 +256,27 @@ export default function ActiveTripScreen({ navigation, route }: any) {
         <View style={styles.fareRow}>
           <Text style={styles.fareLabel}>Fare Estimate</Text>
           <Text style={styles.fareValue}>{trip.fareEstimate} SAR</Text>
+        </View>
+
+        {/* Call + Chat + SOS */}
+        <View style={styles.utilRow}>
+          {passenger?.phone && (
+            <TouchableOpacity
+              style={styles.callBtn}
+              onPress={() => Linking.openURL(`tel:${passenger.phone}`)}
+            >
+              <Text style={styles.utilIcon}>📞</Text>
+              <Text style={styles.callBtnText}>Call</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.chatBtn} onPress={handleChat}>
+            <Text style={styles.utilIcon}>💬</Text>
+            <Text style={styles.chatBtnText}>Chat</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS}>
+            <Text style={styles.utilIcon}>🆘</Text>
+            <Text style={styles.sosBtnText}>SOS</Text>
+          </TouchableOpacity>
         </View>
 
         {action && (
@@ -317,6 +364,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionText: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 17 },
+
+  utilRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  callBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#dcfce7',
+    borderRadius: 12,
+    padding: 12,
+  },
+  callBtnText: { color: '#16a34a', fontWeight: '700', fontSize: 13 },
+  chatBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    padding: 12,
+  },
+  chatBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 14 },
+  sosBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 12,
+  },
+  sosBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 14 },
+  utilIcon: { fontSize: 16 },
 
   driverMarker: {
     width: 46,

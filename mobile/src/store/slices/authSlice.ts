@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi } from '../../services/api';
+import { authApi, usersApi } from '../../services/api';
 
 interface AuthState {
   user: any | null;
@@ -14,6 +14,14 @@ const initialState: AuthState = {
   user: null, token: null, loading: false, error: null, otpSent: false,
 };
 
+// Restore session from saved token on app launch
+export const initAuth = createAsyncThunk('auth/init', async () => {
+  const token = await AsyncStorage.getItem('accessToken');
+  if (!token) throw new Error('No saved session');
+  const res = await usersApi.getProfile();
+  return { user: res.data, accessToken: token };
+});
+
 export const sendOtp = createAsyncThunk('auth/sendOtp', async (phone: string) => {
   const res = await authApi.sendOtp(phone);
   return res.data;
@@ -24,6 +32,10 @@ export const verifyOtp = createAsyncThunk(
   async ({ phone, code, role }: { phone: string; code: string; role?: string }) => {
     const res = await authApi.verifyOtp(phone, code, role);
     await AsyncStorage.setItem('accessToken', res.data.accessToken);
+    // Register push token after login (lazy import to avoid circular deps)
+    import('../../services/notifications').then(({ registerForPushNotifications }) => {
+      registerForPushNotifications();
+    });
     return res.data;
   },
 );
@@ -57,6 +69,10 @@ const authSlice = createSlice({
       .addCase(verifyOtp.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message ?? 'Invalid OTP';
+      })
+      .addCase(initAuth.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        state.token = action.payload.accessToken;
       });
   },
 });

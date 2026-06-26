@@ -3,9 +3,10 @@ import { TripsService } from './trips.service';
 import { TripsController } from './trips.controller';
 import { TripsGateway } from './trips.gateway';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [TripsController],
   providers: [TripsService, TripsGateway],
   exports: [TripsService, TripsGateway],

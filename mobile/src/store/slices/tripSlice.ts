@@ -41,6 +41,20 @@ const tripSlice = createSlice({
         state.currentTrip.driverLng = action.payload.lng;
       }
     },
+    updateTripStatus: (state, action: PayloadAction<{ status: string; finalFare?: number }>) => {
+      if (state.currentTrip) {
+        state.currentTrip.status = action.payload.status;
+        if (action.payload.finalFare !== undefined) {
+          state.currentTrip.finalFare = action.payload.finalFare;
+        }
+      }
+    },
+    setDriverInfo: (state, action: PayloadAction<any>) => {
+      if (state.currentTrip) {
+        state.currentTrip.driver = action.payload;
+        state.currentTrip.status = 'ACCEPTED';
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -55,5 +69,12 @@ const tripSlice = createSlice({
   },
 });
 
-export const { setCurrentTrip, setNearbyDrivers, clearTrip, updateDriverLocation } = tripSlice.actions;
+export const {
+  setCurrentTrip,
+  setNearbyDrivers,
+  clearTrip,
+  updateDriverLocation,
+  updateTripStatus,
+  setDriverInfo,
+} = tripSlice.actions;
 export default tripSlice.reducer;

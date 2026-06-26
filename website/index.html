@@ -327,6 +327,58 @@
     .cta-box > * { position: relative; }
     .cta-box h2 { font-size: clamp(32px, 5vw, 52px); font-weight: 900; margin-bottom: 16px; }
     .cta-box p { font-size: 18px; color: var(--muted); margin-bottom: 40px; }
+    /* ─── DOWNLOAD SECTION ─── */
+    #download { padding: 96px 40px; background: var(--dark2); }
+    .dl-header { text-align: center; margin-bottom: 56px; }
+    .dl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 960px; margin: 0 auto 40px; }
+    .dl-card {
+      background: var(--card); border-radius: 20px; padding: 32px 24px;
+      border: 1px solid rgba(255,255,255,0.07); text-align: center;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .dl-card:hover { transform: translateY(-4px); }
+    .dl-card-android { border-color: rgba(164,255,140,0.2); }
+    .dl-card-ios { border-color: rgba(200,200,255,0.2); }
+    .dl-card-qr { border-color: rgba(255,215,0,0.2); }
+    .dl-card-icon { font-size: 44px; margin-bottom: 14px; }
+    .dl-card h3 { font-size: 20px; font-weight: 700; color: white; margin-bottom: 8px; }
+    .dl-card p { color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+
+    .dl-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-weight: 700; font-size: 15px; padding: 14px 28px;
+      border-radius: 12px; text-decoration: none; transition: all 0.2s;
+      margin-bottom: 24px;
+    }
+    .dl-btn-android { background: #4CAF50; color: white; }
+    .dl-btn-android:hover { background: #43a047; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(76,175,80,0.4); }
+    .dl-btn-ios { background: var(--card); border: 1.5px solid rgba(255,255,255,0.15); color: white; }
+    .dl-btn-ios:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
+    .dl-btn-icon { font-size: 18px; }
+
+    .dl-steps { text-align: left; }
+    .dl-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+    .dl-step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(255,215,0,0.15); color: var(--gold); font-weight: 700; font-size: 11px;
+    }
+
+    .dl-qr-box { display: flex; flex-direction: column; align-items: center; }
+    .dl-qr-img { width: 140px; height: 140px; border-radius: 12px; border: 3px solid var(--gold); margin-bottom: 10px; }
+    .dl-qr-caption { color: var(--muted); font-size: 12px; }
+
+    .dl-footer-links { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .dl-footer-link { display: flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+    .dl-footer-link:hover { color: var(--gold); }
+    .dl-sep { color: rgba(255,255,255,0.15); }
+
+    @media (max-width: 768px) {
+      #download { padding: 60px 20px; }
+      .dl-grid { grid-template-columns: 1fr; }
+    }
+
+    /* legacy store styles kept for safety */
     .store-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
     .store-btn {
       display: flex; align-items: center; gap: 12px;
@@ -384,10 +436,10 @@
     <a href="#how">How It Works</a>
     <a href="#features">Features</a>
     <a href="#apps">For Drivers</a>
+    <a href="#download">Download</a>
     <a href="#api">API</a>
-    <a href="#tech">Tech</a>
   </div>
-  <a href="https://taxiapp-api-production.up.railway.app/api/v1" target="_blank" class="nav-cta">Live API →</a>
+  <a href="#download" class="nav-cta">⬇ Download App</a>
 </nav>
 
 <!-- HERO -->
@@ -409,7 +461,7 @@
       <p class="hero-desc-ar">احجز رحلتك في ثوانٍ. تابع سائقك لحظةً بلحظة على الخريطة.<br>ادفع نقداً أو بالبطاقة. متوفر في الرياض وجدة والدمام والمزيد.</p>
     </div>
     <div class="hero-btns">
-      <a href="#apps" class="btn-primary">📱 Get the App</a>
+      <a href="#download" class="btn-primary">⬇ Download App</a>
       <a href="https://github.com/khaledq84ever/taxiapp" target="_blank" class="btn-secondary">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
         View Source
@@ -648,37 +700,78 @@ POST /auth/verify-otp
   </div>
 </section>
 
-<!-- CTA -->
-<section id="cta">
+<!-- DOWNLOAD -->
+<section id="download">
   <div class="container fade-up">
-    <div class="cta-box">
-      <h2>Ready to ride?<br/>Download TaxiApp today.</h2>
-      <p>Available on Android and iOS. Free to download.</p>
-      <div class="store-btns">
-        <a href="#" class="store-btn">
-          <div class="store-icon">🤖</div>
-          <div class="store-info">
-            <small>GET IT ON</small>
-            <strong>Google Play</strong>
-          </div>
+    <div class="dl-header">
+      <span class="section-tag">DOWNLOAD</span>
+      <h2 class="section-title">Install TaxiApp<br/>on your phone</h2>
+      <p class="section-sub">Free to download. Available for Android &amp; iOS.</p>
+    </div>
+
+    <div class="dl-grid">
+
+      <!-- Android APK -->
+      <div class="dl-card dl-card-android">
+        <div class="dl-card-icon">🤖</div>
+        <h3>Android</h3>
+        <p>Direct install — no Play Store needed</p>
+        <a href="https://apkweb-production.up.railway.app/taxiapp.apk" class="dl-btn dl-btn-android" download>
+          <span class="dl-btn-icon">⬇</span>
+          Download APK
         </a>
-        <a href="#" class="store-btn">
-          <div class="store-icon">🍎</div>
-          <div class="store-info">
-            <small>DOWNLOAD ON THE</small>
-            <strong>App Store</strong>
-          </div>
-        </a>
-        <a href="https://taxiapp-api-production.up.railway.app/api/v1" target="_blank" class="store-btn">
-          <div class="store-icon">⚙️</div>
-          <div class="store-info">
-            <small>EXPLORE THE</small>
-            <strong>Live API</strong>
-          </div>
-        </a>
+        <div class="dl-steps">
+          <div class="dl-step"><span class="dl-step-num">1</span> Tap Download APK</div>
+          <div class="dl-step"><span class="dl-step-num">2</span> Allow "Install unknown apps" in Settings</div>
+          <div class="dl-step"><span class="dl-step-num">3</span> Open the downloaded file &amp; install</div>
+        </div>
       </div>
-      <a href="https://github.com/khaledq84ever/taxiapp" target="_blank" class="api-link">
-        ⭐ Star on GitHub &nbsp; · &nbsp; View source code →
+
+      <!-- iOS -->
+      <div class="dl-card dl-card-ios">
+        <div class="dl-card-icon">🍎</div>
+        <h3>iPhone / iPad</h3>
+        <p>Test instantly with Expo Go</p>
+        <a href="https://expo.dev/client" target="_blank" class="dl-btn dl-btn-ios">
+          <span class="dl-btn-icon">↗</span>
+          Get Expo Go
+        </a>
+        <div class="dl-steps">
+          <div class="dl-step"><span class="dl-step-num">1</span> Install Expo Go from App Store</div>
+          <div class="dl-step"><span class="dl-step-num">2</span> Open camera &amp; scan QR code below</div>
+          <div class="dl-step"><span class="dl-step-num">3</span> App loads instantly on your iPhone</div>
+        </div>
+      </div>
+
+      <!-- Expo Go QR -->
+      <div class="dl-card dl-card-qr">
+        <div class="dl-card-icon">📱</div>
+        <h3>Scan to Test Now</h3>
+        <p>Works on both Android and iPhone with Expo Go</p>
+        <div class="dl-qr-box">
+          <img
+            src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=FFD700&bgcolor=1e1e30&data=https://expo.dev/go"
+            alt="QR Code"
+            class="dl-qr-img"
+          />
+          <p class="dl-qr-caption">Point your camera at this QR code</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom API + GitHub links -->
+    <div class="dl-footer-links">
+      <a href="https://taxiapp-api-production.up.railway.app/api/v1" target="_blank" class="dl-footer-link">
+        <span>⚙️</span> Live API
+      </a>
+      <span class="dl-sep">·</span>
+      <a href="https://github.com/khaledq84ever/taxiapp" target="_blank" class="dl-footer-link">
+        <span>⭐</span> Star on GitHub
+      </a>
+      <span class="dl-sep">·</span>
+      <a href="https://khaledq84ever.github.io/taxiapp/" target="_blank" class="dl-footer-link">
+        <span>🌐</span> Website
       </a>
     </div>
   </div>

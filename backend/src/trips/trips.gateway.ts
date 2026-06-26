@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @WebSocketGateway({ cors: { origin: '*' }, namespace: '/trips' })
 export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -25,6 +26,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private jwt: JwtService,
     private config: ConfigService,
     private prisma: PrismaService,
+    private notifs: NotificationsService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -155,11 +157,20 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       select: { userId: true },
     });
 
+    const driverUserIds = nearbyDrivers.map((d) => d.userId);
+
     nearbyDrivers.forEach((driver) => {
       this.server.to(`user:${driver.userId}`).emit('server:new-trip-request', {
         trip,
         passenger: trip.passenger,
       });
+    });
+
+    // Push to offline drivers
+    this.notifs.sendPushToMany(driverUserIds, {
+      title: '🚖 New Trip Request',
+      body: `${trip.passenger.name || 'Passenger'} needs a ride · ${trip.fareEstimate} SAR`,
+      data: { tripId: trip.id, type: 'TRIP_REQUEST' },
     });
   }
 
@@ -186,6 +197,15 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       driver: trip.driver,
       tripId: trip.id,
     });
+
+    // Push to passenger in case they backgrounded the app
+    this.notifs.sendPush(trip.passengerId, {
+      title: '🚗 Driver Found!',
+      body: `${trip.driver?.user?.name || 'Your driver'} is on the way`,
+      data: { tripId: trip.id, type: 'TRIP_ACCEPTED' },
+    });
+    this.notifs.saveInApp(trip.passengerId, 'Driver Found!',
+      `${trip.driver?.user?.name || 'Your driver'} accepted your trip`, 'TRIP_ACCEPTED');
   }
 
   // ─── driver completed trip → notify passenger ─────────────────────────────
@@ -202,6 +222,14 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       finalFare: trip.finalFare,
       tripId: trip.id,
     });
+
+    this.notifs.sendPush(trip.passengerId, {
+      title: '✅ Trip Completed',
+      body: `Your fare: ${trip.finalFare ?? trip.fareEstimate} SAR. Rate your driver!`,
+      data: { tripId: trip.id, type: 'TRIP_COMPLETED' },
+    });
+    this.notifs.saveInApp(trip.passengerId, 'Trip Completed',
+      `Fare: ${trip.finalFare ?? trip.fareEstimate} SAR`, 'TRIP_COMPLETED');
   }
 
   // ─── passenger cancelled trip → notify driver ─────────────────────────────
@@ -218,7 +246,39 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(`user:${driver.userId}`).emit('server:trip-cancelled', {
         tripId: data.tripId,
       });
+      this.notifs.sendPush(driver.userId, {
+        title: '❌ Trip Cancelled',
+        body: 'The passenger cancelled the trip',
+        data: { tripId: data.tripId, type: 'TRIP_CANCELLED' },
+      });
     }
+  }
+
+  // ─── in-app chat between passenger and driver ─────────────────────────────
+  @SubscribeMessage('chat:message')
+  async handleChatMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { tripId: string; text: string },
+  ) {
+    const senderId = client.data.userId;
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: data.tripId },
+      include: { driver: true },
+    });
+    if (!trip) return;
+
+    const targetUserId =
+      senderId === trip.passengerId ? trip.driver?.userId : trip.passengerId;
+    if (!targetUserId) return;
+
+    const payload = {
+      text: data.text,
+      senderId,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.server.to(`user:${targetUserId}`).emit('server:chat-message', { ...payload, isMine: false });
+    client.emit('server:chat-message', { ...payload, isMine: true });
   }
 
   emitToUser(userId: string, event: string, data: any) {

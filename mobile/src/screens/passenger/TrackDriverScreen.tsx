@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -91,7 +92,13 @@ export default function TrackDriverScreen({ navigation }: any) {
           Alert.alert(
             'Trip Completed! 🎉',
             `Total fare: ${data.finalFare} SAR`,
-            [{ text: 'Done', onPress: () => navigation.replace('PassengerHome') }],
+            [{
+              text: 'Rate Driver',
+              onPress: () => navigation.replace('RateTrip', { trip: { ...currentTrip, finalFare: data.finalFare } }),
+            }, {
+              text: 'Done',
+              onPress: () => navigation.replace('PassengerHome'),
+            }],
           );
         }
         if (data.status === 'CANCELLED') {
@@ -138,6 +145,21 @@ export default function TrackDriverScreen({ navigation }: any) {
 
   const driver = currentTrip?.driver;
   const isArrived = tripStatus === 'DRIVER_ARRIVED';
+
+  const handleSOS = () => {
+    Alert.alert('Emergency', 'Call emergency services?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Call 911', style: 'destructive', onPress: () => Linking.openURL('tel:911') },
+    ]);
+  };
+
+  const handleChat = () => {
+    if (!currentTrip) return;
+    navigation.navigate('Chat', {
+      tripId: currentTrip.id,
+      otherName: driver?.user?.name || 'Driver',
+    });
+  };
   const carRotation = driverHeading >= 0 ? driverHeading : 0;
 
   return (
@@ -161,6 +183,19 @@ export default function TrackDriverScreen({ navigation }: any) {
             <Text style={styles.myMarkerText}>📍</Text>
           </View>
         </Marker>
+
+        {/* Route line: my location → driver */}
+        {driverLocation && (
+          <Polyline
+            coordinates={[
+              { latitude: myLocation.lat, longitude: myLocation.lng },
+              { latitude: driverLocation.lat, longitude: driverLocation.lng },
+            ]}
+            strokeColor="#FFD700"
+            strokeWidth={3}
+            lineDashPattern={[8, 4]}
+          />
+        )}
 
         {/* Driver marker — rotates with heading, updates in real time */}
         {driverLocation && (
@@ -217,6 +252,27 @@ export default function TrackDriverScreen({ navigation }: any) {
             </View>
           </View>
         )}
+
+        {/* Action row: Call + Chat + SOS */}
+        <View style={styles.actionRow}>
+          {driver?.user?.phone && (
+            <TouchableOpacity
+              style={styles.callBtn}
+              onPress={() => Linking.openURL(`tel:${driver.user.phone}`)}
+            >
+              <Text style={styles.callBtnIcon}>📞</Text>
+              <Text style={styles.callBtnText}>Call</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.chatBtn} onPress={handleChat}>
+            <Text style={styles.chatBtnIcon}>💬</Text>
+            <Text style={styles.chatBtnText}>Chat</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS}>
+            <Text style={styles.sosBtnIcon}>🆘</Text>
+            <Text style={styles.sosBtnText}>SOS</Text>
+          </TouchableOpacity>
+        </View>
 
         {tripStatus === 'ACCEPTED' && (
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
@@ -294,6 +350,48 @@ const styles = StyleSheet.create({
   ratingBadge: { alignItems: 'center', paddingLeft: 12 },
   ratingText: { fontSize: 20 },
   ratingValue: { fontSize: 16, fontWeight: 'bold', color: '#1a1a2e', marginTop: 2 },
+
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  callBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#dcfce7',
+    borderRadius: 14,
+    padding: 14,
+  },
+  callBtnIcon: { fontSize: 16 },
+  callBtnText: { color: '#16a34a', fontWeight: '700', fontSize: 14 },
+  chatBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 14,
+    padding: 14,
+  },
+  chatBtnIcon: { fontSize: 18 },
+  chatBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 15 },
+  sosBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 14,
+    padding: 14,
+  },
+  sosBtnIcon: { fontSize: 18 },
+  sosBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 15 },
 
   cancelBtn: {
     borderWidth: 1.5,

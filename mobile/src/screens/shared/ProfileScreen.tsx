@@ -1,0 +1,295 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../../store';
+import { logout } from '../../store/slices/authSlice';
+import { usersApi } from '../../services/api';
+
+export default function ProfileScreen() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((s: RootState) => s.auth);
+  const [name, setName] = useState(user?.name || '');
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [driverInfo, setDriverInfo] = useState<any>(null);
+
+  useEffect(() => {
+    usersApi.getProfile().then((res) => {
+      setName(res.data.name || '');
+      if (res.data.driver) setDriverInfo(res.data.driver);
+    }).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await usersApi.updateProfile({ name: name.trim() });
+      setEditing(false);
+      Alert.alert('Saved', 'Your name has been updated.');
+    } catch {
+      Alert.alert('Error', 'Could not save changes.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: () => dispatch(logout()),
+      },
+    ]);
+  };
+
+  const roleLabel = user?.role === 'DRIVER' ? 'Driver' : 'Passenger';
+  const roleIcon = user?.role === 'DRIVER' ? '🚗' : '👤';
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Avatar */}
+      <View style={styles.avatarSection}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{roleIcon}</Text>
+        </View>
+        <View style={styles.roleBadge}>
+          <Text style={styles.roleText}>{roleLabel}</Text>
+        </View>
+        <Text style={styles.phone}>{user?.phone}</Text>
+      </View>
+
+      {/* Name section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Full Name</Text>
+        {editing ? (
+          <View style={styles.editRow}>
+            <TextInput
+              style={styles.nameInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+              autoFocus
+            />
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+              {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Save</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelEditBtn} onPress={() => setEditing(false)}>
+              <Text style={styles.cancelEditText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.nameRow} onPress={() => setEditing(true)}>
+            <Text style={styles.nameValue}>{name || 'Tap to add your name'}</Text>
+            <Text style={styles.editIcon}>✏️</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Driver stats */}
+      {driverInfo && (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Driver Stats</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>⭐ {Number(driverInfo.rating).toFixed(1)}</Text>
+              <Text style={styles.statLabel}>Rating</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{driverInfo.totalTrips}</Text>
+              <Text style={styles.statLabel}>Trips</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{Number(driverInfo.totalEarnings).toFixed(0)}</Text>
+              <Text style={styles.statLabel}>SAR Earned</Text>
+            </View>
+          </View>
+
+          {/* Car info */}
+          <View style={styles.carCard}>
+            <Text style={styles.carIcon}>🚗</Text>
+            <View style={styles.carInfo}>
+              <Text style={styles.carModel}>
+                {[driverInfo.carMake, driverInfo.carModel, driverInfo.carYear].filter(Boolean).join(' ')}
+              </Text>
+              <Text style={styles.carPlate}>{driverInfo.carPlate}</Text>
+              <Text style={styles.carColor}>{driverInfo.carColor}</Text>
+            </View>
+            <View style={[
+              styles.statusBadge,
+              driverInfo.status === 'APPROVED' ? styles.statusApproved : styles.statusPending,
+            ]}>
+              <Text style={styles.statusBadgeText}>
+                {driverInfo.status === 'APPROVED' ? 'Approved' : driverInfo.status}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Info items */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Account</Text>
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>📱</Text>
+            <Text style={styles.infoLabel}>Phone</Text>
+            <Text style={styles.infoValue}>{user?.phone}</Text>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>🎭</Text>
+            <Text style={styles.infoLabel}>Role</Text>
+            <Text style={styles.infoValue}>{roleLabel}</Text>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>✅</Text>
+            <Text style={styles.infoLabel}>Status</Text>
+            <Text style={[styles.infoValue, { color: '#16a34a' }]}>Active</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Logout */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.version}>TaxiApp v1.0 · Saudi Arabia 🇸🇦</Text>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  content: { padding: 20, paddingBottom: 40 },
+
+  avatarSection: { alignItems: 'center', paddingVertical: 28 },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#1a1a2e',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  avatarText: { fontSize: 44 },
+  roleBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  roleText: { color: '#1a1a2e', fontWeight: '700', fontSize: 13 },
+  phone: { color: '#666', fontSize: 15 },
+
+  section: { marginBottom: 20 },
+  sectionLabel: { color: '#aaa', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+  },
+  nameValue: { fontSize: 17, color: '#1a1a2e', fontWeight: '500', flex: 1 },
+  editIcon: { fontSize: 18 },
+
+  editRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nameInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#1a1a2e',
+    borderWidth: 1.5,
+    borderColor: '#FFD700',
+  },
+  saveBtn: {
+    backgroundColor: '#FFD700',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  saveBtnText: { color: '#1a1a2e', fontWeight: 'bold' },
+  cancelEditBtn: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    padding: 14,
+  },
+  cancelEditText: { color: '#666', fontWeight: 'bold' },
+
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+  },
+  statValue: { color: '#FFD700', fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
+  statLabel: { color: '#aaa', fontSize: 11 },
+
+  carCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  carIcon: { fontSize: 32, marginRight: 14 },
+  carInfo: { flex: 1 },
+  carModel: { fontSize: 16, fontWeight: '600', color: '#1a1a2e' },
+  carPlate: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    backgroundColor: '#FFD700',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 5,
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+  carColor: { color: '#666', fontSize: 13, marginTop: 3 },
+  statusBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  statusApproved: { backgroundColor: '#dcfce7' },
+  statusPending: { backgroundColor: '#fef9c3' },
+  statusBadgeText: { fontSize: 12, fontWeight: '700', color: '#1a1a2e' },
+
+  infoCard: { backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  infoIcon: { fontSize: 20, width: 28 },
+  infoLabel: { color: '#666', fontSize: 14, flex: 1 },
+  infoValue: { color: '#1a1a2e', fontSize: 14, fontWeight: '600' },
+  infoDivider: { height: 1, backgroundColor: '#f0f0f0', marginLeft: 56 },
+
+  logoutBtn: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoutText: { color: '#ef4444', fontWeight: 'bold', fontSize: 16 },
+
+  version: { textAlign: 'center', color: '#bbb', fontSize: 12 },
+});
