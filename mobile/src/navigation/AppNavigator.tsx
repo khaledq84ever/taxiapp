@@ -137,6 +137,11 @@ export default function AppNavigator() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="DriverRegister"
+              component={DriverRegisterScreen}
+              options={{ title: 'Become a Driver' }}
+            />
+            <Stack.Screen
               name="BookRide"
               component={BookRideScreen}
               options={{ title: 'Book a Ride' }}
