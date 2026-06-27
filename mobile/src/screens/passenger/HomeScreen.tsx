@@ -233,6 +233,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3,
     elevation: 4, borderWidth: 1.5, borderColor: '#FFD700',
   },
+  carPinDeliver: { borderColor: '#3b82f6' },
   carPinText: { fontSize: 18 },
 
   // Top floating bar
