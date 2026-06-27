@@ -32,9 +32,21 @@ export default function TrackDriverScreen({ navigation }: any) {
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [driverHeading, setDriverHeading] = useState<number>(-1);
   const [eta, setEta] = useState<{ minutes: number; distanceKm: number } | null>(null);
+  const [etaSeconds, setEtaSeconds] = useState<number | null>(null);
   const [tripStatus, setTripStatus] = useState<string>(currentTrip?.status || 'ACCEPTED');
 
   const latestMyLoc = useRef<{ lat: number; lng: number } | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Live countdown — ticks down every second from latest ETA
+  useEffect(() => {
+    if (etaSeconds === null) return;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setEtaSeconds((s) => (s !== null && s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [Math.floor((etaSeconds ?? 0) / 60)]); // restart only when minute changes
 
   const fitMap = useCallback(
     (myLoc: { lat: number; lng: number }, driverLoc: { lat: number; lng: number }) => {
@@ -79,6 +91,7 @@ export default function TrackDriverScreen({ navigation }: any) {
         setDriverLocation(dLoc);
         setDriverHeading(data.heading ?? -1);
         setEta({ minutes: data.etaMinutes, distanceKm: data.distanceKm });
+        setEtaSeconds(data.etaMinutes * 60);
         dispatch(updateDriverLocation({ lat: data.lat, lng: data.lng }));
         if (data.status) setTripStatus(data.status);
         if (latestMyLoc.current) fitMap(latestMyLoc.current, dLoc);
@@ -211,7 +224,11 @@ export default function TrackDriverScreen({ navigation }: any) {
         <View style={[styles.etaBanner, isArrived && styles.etaBannerArrived]}>
           {eta ? (
             <View style={styles.etaInner}>
-              <Text style={styles.etaMinutes}>{eta.minutes} min</Text>
+              <Text style={styles.etaMinutes}>
+                {etaSeconds !== null
+                  ? `${Math.floor(etaSeconds / 60)}:${String(etaSeconds % 60).padStart(2, '0')}`
+                  : `${eta.minutes} min`}
+              </Text>
               <Text style={styles.etaDot}>·</Text>
               <Text style={styles.etaDist}>{eta.distanceKm} km away</Text>
             </View>

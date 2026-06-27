@@ -185,23 +185,39 @@ export default function DriverHomeScreen({ navigation }: any) {
           />
         </View>
 
-        <View style={styles.earningsBox}>
-          <Text style={styles.earningsLabel}>Total Earnings</Text>
-          <Text style={styles.earningsValue}>{earnings.toFixed(2)} SAR</Text>
+        {/* Earnings row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{earnings.toFixed(0)} SAR</Text>
+            <Text style={styles.statLabel}>Total Earned</Text>
+          </View>
+          <View style={[styles.statCard, styles.statCardHighlight]}>
+            <Text style={[styles.statValue, { color: '#FFD700' }]}>80%</Text>
+            <Text style={[styles.statLabel, { color: '#aaa' }]}>Your cut</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{isOnline ? '🟢' : '🔴'}</Text>
+            <Text style={styles.statLabel}>{isOnline ? 'Active' : 'Offline'}</Text>
+          </View>
         </View>
 
+        {/* Earnings potential hint */}
+        {!isOnline && (
+          <View style={styles.earnHint}>
+            <Text style={styles.earnHintText}>💡 Drivers earn avg 150–400 SAR/day. Go online to start!</Text>
+          </View>
+        )}
+
         <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.quickBtn}
-            onPress={() => navigation.navigate('DriverEarnings')}
-          >
+          <TouchableOpacity style={styles.quickBtn} onPress={() => navigation.navigate('DriverEarnings')}>
             <Text style={styles.quickBtnIcon}>💰</Text>
             <Text style={styles.quickBtnText}>Earnings</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickBtn}
-            onPress={() => navigation.navigate('Profile')}
-          >
+          <TouchableOpacity style={styles.quickBtn} onPress={() => navigation.navigate('Notifications')}>
+            <Text style={styles.quickBtnIcon}>🔔</Text>
+            <Text style={styles.quickBtnText}>Alerts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickBtn} onPress={() => navigation.navigate('Profile')}>
             <Text style={styles.quickBtnIcon}>👤</Text>
             <Text style={styles.quickBtnText}>Profile</Text>
           </TouchableOpacity>
@@ -319,15 +335,19 @@ const styles = StyleSheet.create({
   status: { color: '#999', marginTop: 4, fontSize: 13 },
   statusOnline: { color: '#16a34a' },
 
-  earningsBox: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 14,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 12,
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  statCard: {
+    flex: 1, backgroundColor: '#f8f8f8', borderRadius: 14, padding: 12, alignItems: 'center', gap: 4,
   },
-  earningsLabel: { color: '#666', fontSize: 13 },
-  earningsValue: { fontSize: 28, fontWeight: 'bold', color: '#1a1a2e', marginTop: 4 },
+  statCardHighlight: { backgroundColor: '#1a1a2e' },
+  statValue: { fontSize: 18, fontWeight: '800', color: '#1a1a2e' },
+  statLabel: { color: '#888', fontSize: 11, fontWeight: '600' },
+
+  earnHint: {
+    backgroundColor: '#FFFDE7', borderRadius: 12, padding: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: '#FFD700',
+  },
+  earnHintText: { color: '#1a1a2e', fontSize: 13, fontWeight: '500' },
 
   quickActions: { flexDirection: 'row', gap: 10 },
   quickBtn: {

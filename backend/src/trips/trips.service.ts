@@ -1,11 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { RequestTripDto, EstimateFareDto } from './dto/request-trip.dto';
+import { RequestTripDto, EstimateFareDto, RideType, RIDE_TYPE_MULTIPLIER } from './dto/request-trip.dto';
 
 const BASE_FARE = 5;
 const PER_KM_RATE = 2.5;
 const PLATFORM_COMMISSION = 0.2;
+
+function getSurgeMultiplier(): number {
+  const hour = new Date().getHours();
+  // Morning rush 7-9, evening rush 17-20, late night 23-2
+  if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 20)) return 1.3;
+  if (hour >= 23 || hour <= 2) return 1.2;
+  return 1.0;
+}
 
 @Injectable()
 export class TripsService {
@@ -16,16 +24,27 @@ export class TripsService {
 
   estimateFare(dto: EstimateFareDto) {
     const distanceKm = this.haversine(dto.pickupLat, dto.pickupLng, dto.dropoffLat, dto.dropoffLng);
-    const fare = BASE_FARE + distanceKm * PER_KM_RATE;
+    const baseFare = BASE_FARE + distanceKm * PER_KM_RATE;
+    const surge = getSurgeMultiplier();
+    const rideMultiplier = RIDE_TYPE_MULTIPLIER[dto.rideType ?? RideType.ECONOMY];
+
+    const options = Object.values(RideType).map((type) => ({
+      type,
+      fare: Math.round(baseFare * surge * RIDE_TYPE_MULTIPLIER[type] * 100) / 100,
+    }));
+
     return {
       distanceKm: Math.round(distanceKm * 10) / 10,
-      estimatedFare: Math.round(fare * 100) / 100,
+      estimatedFare: Math.round(baseFare * surge * rideMultiplier * 100) / 100,
       currency: 'SAR',
+      surgeMultiplier: surge,
+      surgeActive: surge > 1.0,
+      options,
     };
   }
 
   async requestTrip(passengerId: string, dto: RequestTripDto) {
-    const estimate = this.estimateFare(dto);
+    const estimate = this.estimateFare({ ...dto, rideType: dto.rideType });
 
     const activeTrip = await this.prisma.trip.findFirst({
       where: { passengerId, status: { in: ['REQUESTED', 'ACCEPTED', 'DRIVER_ARRIVED', 'IN_PROGRESS'] } },
