@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,27 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Alert,
 } from 'react-native';
+import { ratingsApi } from '../../services/api';
 
 export default function DriverTripCompleteScreen({ navigation, route }: any) {
   const { trip } = route.params as { trip: any };
   const earned = trip?.finalFare ?? trip?.fareEstimate ?? 0;
   const commission = (earned * 0.2).toFixed(2);
   const net = (earned - parseFloat(commission)).toFixed(2);
+  const [rating, setRating] = useState(0);
+  const [rated, setRated] = useState(false);
+
+  const handleRate = async (score: number) => {
+    setRating(score);
+    try {
+      await ratingsApi.create({ tripId: trip.id, score });
+      setRated(true);
+    } catch {
+      Alert.alert('Error', 'Could not submit rating');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -64,6 +78,25 @@ export default function DriverTripCompleteScreen({ navigation, route }: any) {
             </View>
           </View>
         </View>
+
+        {/* Rate passenger */}
+        {!rated ? (
+          <View style={styles.rateCard}>
+            <Text style={styles.rateTitle}>Rate your passenger</Text>
+            <View style={styles.stars}>
+              {[1, 2, 3, 4, 5].map((s) => (
+                <TouchableOpacity key={s} onPress={() => handleRate(s)}>
+                  <Text style={[styles.star, s <= rating && styles.starActive]}>★</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.rateHint}>Tap a star to rate</Text>
+          </View>
+        ) : (
+          <View style={styles.rateCard}>
+            <Text style={styles.ratedText}>✅ Rating submitted — thanks!</Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={styles.homeBtn}
@@ -166,4 +199,24 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   earningsBtnText: { color: '#666', fontWeight: '600', fontSize: 15 },
+
+  rateCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  rateTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a2e', marginBottom: 12 },
+  stars: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  star: { fontSize: 36, color: '#ddd' },
+  starActive: { color: '#FFD700' },
+  rateHint: { color: '#aaa', fontSize: 12 },
+  ratedText: { color: '#16a34a', fontWeight: '700', fontSize: 15 },
 });
