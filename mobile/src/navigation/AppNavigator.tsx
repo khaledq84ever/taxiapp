@@ -137,6 +137,11 @@ export default function AppNavigator() {
               options={{ title: 'Become a Driver' }}
             />
             <Stack.Screen
+              name="PendingApproval"
+              component={PendingApprovalScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="BookRide"
               component={BookRideScreen}
               options={{ title: 'Book a Ride' }}

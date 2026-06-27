@@ -3,12 +3,20 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Alert, ActivityIndicator, SafeAreaView,
 } from 'react-native';
-import { driversApi } from '../../services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../../store';
+import { setUser } from '../../store/slices/authSlice';
+import { driversApi, usersApi } from '../../services/api';
 
 const CAR_MAKES = ['Toyota', 'Hyundai', 'Kia', 'Nissan', 'Honda', 'Ford', 'BMW', 'Mercedes'];
 const CAR_COLORS = ['White', 'Black', 'Silver', 'Gray', 'Blue', 'Red'];
 
 export default function DriverRegisterScreen({ navigation }: any) {
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((s: RootState) => s.auth);
+
+  const [phone, setPhone] = useState(user?.phone?.startsWith('+guest') ? '+966' : (user?.phone ?? '+966'));
+  const [name, setName] = useState(user?.name === 'Guest' ? '' : (user?.name ?? ''));
   const [form, setForm] = useState({
     licenseNumber: '', carMake: '', carModel: '', carYear: '', carColor: '', carPlate: '',
   });
@@ -17,14 +25,20 @@ export default function DriverRegisterScreen({ navigation }: any) {
   const set = (key: string) => (val: string) => setForm((f) => ({ ...f, [key]: val }));
 
   const handleSubmit = async () => {
+    if (!phone || phone.length < 8) return Alert.alert('Phone Required', 'Enter your phone number');
     for (const [k, v] of Object.entries(form)) {
       if (!v) return Alert.alert('Missing Info', `Please fill in: ${k.replace(/([A-Z])/g, ' $1').trim()}`);
     }
     if (form.carYear.length !== 4) return Alert.alert('Invalid Year', 'Enter a 4-digit year (e.g. 2022)');
     setLoading(true);
     try {
-      await driversApi.register({ ...form, carYear: parseInt(form.carYear) });
-      Alert.alert('🎉 Application Submitted!', 'Your application is under review. Usually approved within 24 hours.');
+      // Update profile with real phone + name first
+      await usersApi.updateProfile({ phone, name: name || 'Driver' });
+      // Register as driver (backend sets role → DRIVER)
+      const res = await driversApi.register({ ...form, carYear: parseInt(form.carYear) });
+      // Update Redux so navigator switches to driver stack
+      dispatch(setUser({ ...user, role: 'DRIVER', phone, name: name || 'Driver' }));
+      Alert.alert('🎉 Application Submitted!', 'Under review — usually approved within 24 hours.');
       navigation.navigate('PendingApproval');
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Registration failed. Please try again.');
@@ -57,7 +71,27 @@ export default function DriverRegisterScreen({ navigation }: any) {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Vehicle Information</Text>
+        <Text style={styles.sectionTitle}>Your Information</Text>
+
+        <Text style={styles.label}>Full Name *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Mohammed Al-Zahrani"
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+        />
+
+        <Text style={styles.label}>Phone Number *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="+966501234567"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+        />
+
+        <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Vehicle Information</Text>
 
         {/* License Number */}
         <Text style={styles.label}>License Number *</Text>

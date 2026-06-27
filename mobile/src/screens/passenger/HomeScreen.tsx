@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { driversApi, notificationsApi } from '../../services/api';
 import { setNearbyDrivers } from '../../store/slices/tripSlice';
+import { socketService } from '../../services/socket';
 
 const { height } = Dimensions.get('window');
 
@@ -42,10 +43,11 @@ export default function PassengerHomeScreen({ navigation }: any) {
     })();
   }, []);
 
-  // Fetch nearby drivers every 15s
+  // Fetch nearby drivers once + WebSocket live updates
   useEffect(() => {
     if (!location) return;
-    const fetch = async () => {
+
+    const fetchInitial = async () => {
       try {
         const res = await driversApi.getNearby(location.latitude, location.longitude);
         const drivers = res.data ?? [];
@@ -53,9 +55,28 @@ export default function PassengerHomeScreen({ navigation }: any) {
         dispatch(setNearbyDrivers(drivers));
       } catch {}
     };
-    fetch();
-    const id = setInterval(fetch, 15000);
-    return () => clearInterval(id);
+    fetchInitial();
+
+    // Subscribe to live driver positions via WebSocket
+    socketService.connect().then(() => {
+      socketService.emit('join:public-drivers', {});
+      socketService.on('public:driver-location', (data: { driverId: string; lat: number; lng: number; heading: number }) => {
+        setNearbyDriversLocal((prev) => {
+          const idx = prev.findIndex((d: any) => d.id === data.driverId);
+          if (idx === -1) return prev;
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], currentLat: data.lat, currentLng: data.lng };
+          return updated;
+        });
+      });
+    }).catch(() => {});
+
+    // Fallback poll every 30s to catch new drivers coming online
+    const id = setInterval(fetchInitial, 30000);
+    return () => {
+      clearInterval(id);
+      socketService.off('public:driver-location');
+    };
   }, [location]);
 
   // Notification badge
@@ -97,11 +118,13 @@ export default function PassengerHomeScreen({ navigation }: any) {
             : { latitude: 24.7136, longitude: 46.6753, latitudeDelta: 0.1, longitudeDelta: 0.1 }
         }
       >
-        {/* Nearby driver pins */}
-        {nearbyDrivers.map((d) =>
+        {/* Nearby driver pins — live, updates every 5s */}
+        {nearbyDrivers.map((d, i) =>
           d.currentLat && d.currentLng ? (
             <Marker key={d.id} coordinate={{ latitude: d.currentLat, longitude: d.currentLng }} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={styles.carPin}><Text style={styles.carPinText}>🚗</Text></View>
+              <View style={[styles.carPin, i % 3 === 0 && styles.carPinDeliver]}>
+                <Text style={styles.carPinText}>{i % 3 === 0 ? '📦' : '🚗'}</Text>
+              </View>
             </Marker>
           ) : null,
         )}

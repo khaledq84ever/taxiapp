@@ -70,6 +70,17 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.lastDbSave.set(userId, now);
     }
 
+    // Broadcast live location to ALL passengers watching the public map
+    const driver = await this.prisma.driver.findUnique({ where: { userId }, select: { id: true, isOnline: true } });
+    if (driver?.isOnline) {
+      this.server.to('public:drivers').emit('public:driver-location', {
+        driverId: driver.id,
+        lat: data.lat,
+        lng: data.lng,
+        heading: data.heading ?? -1,
+      });
+    }
+
     const activeTrip = await this.prisma.trip.findFirst({
       where: {
         driver: { userId },
@@ -135,6 +146,12 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       distanceKm: Math.round(distanceKm * 10) / 10,
       etaMinutes: this.calcEta(distanceKm),
     });
+  }
+
+  // ─── passenger joins public room to receive live driver locations ────────
+  @SubscribeMessage('join:public-drivers')
+  handleJoinPublic(@ConnectedSocket() client: Socket) {
+    client.join('public:drivers');
   }
 
   // ─── passenger broadcasts trip request to nearby drivers ─────────────────
