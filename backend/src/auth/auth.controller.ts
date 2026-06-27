@@ -8,6 +8,11 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 export class AuthController {
   constructor(private auth: AuthService) {}
 
+  @Post('guest')
+  guestLogin(@Body('name') name?: string) {
+    return this.auth.guestLogin(name);
+  }
+
   @Post('send-otp')
   sendOtp(@Body() dto: SendOtpDto) {
     return this.auth.sendOtp(dto);

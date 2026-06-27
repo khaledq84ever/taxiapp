@@ -14,10 +14,18 @@ const initialState: AuthState = {
   user: null, token: null, loading: false, error: null, otpSent: false,
 };
 
-// Restore session from saved token on app launch
+// Restore session or auto-create guest on first launch
 export const initAuth = createAsyncThunk('auth/init', async () => {
-  const token = await AsyncStorage.getItem('accessToken');
-  if (!token) throw new Error('No saved session');
+  let token = await AsyncStorage.getItem('accessToken');
+
+  if (!token) {
+    // First launch — create guest account automatically, no registration needed
+    const res = await authApi.guest();
+    token = res.data.accessToken;
+    await AsyncStorage.setItem('accessToken', token);
+    return { user: res.data.user, accessToken: token, activeTrip: null };
+  }
+
   const [profileRes, activeTrip] = await Promise.all([
     usersApi.getProfile(),
     tripsApi.getActive().catch(() => ({ data: null })),

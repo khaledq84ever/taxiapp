@@ -84,6 +84,19 @@ export class AuthService {
     return { user, ...tokens };
   }
 
+  async guestLogin(name?: string) {
+    const guestId = Math.random().toString(36).slice(2, 10);
+    const phone = `+guest${guestId}`;
+    let user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: { phone, role: 'PASSENGER', isVerified: true, name: name || 'Guest' },
+      });
+    }
+    const tokens = await this.generateTokens(user.id, user.phone, user.role);
+    return { user, ...tokens };
+  }
+
   async refreshToken(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
