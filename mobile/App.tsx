@@ -6,6 +6,7 @@ import { store } from './src/store';
 import { AppDispatch } from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initAuth } from './src/store/slices/authSlice';
+import { setCurrentTrip } from './src/store/slices/tripSlice';
 import { registerForPushNotifications } from './src/services/notifications';
 
 function Root() {
@@ -14,8 +15,11 @@ function Root() {
 
   useEffect(() => {
     dispatch(initAuth())
-      .then(() => {
-        // Register for push notifications after session restore
+      .then((action: any) => {
+        // Restore active trip into trip slice on app launch
+        if (action.payload?.activeTrip) {
+          dispatch(setCurrentTrip(action.payload.activeTrip));
+        }
         registerForPushNotifications();
       })
       .catch(() => {})
