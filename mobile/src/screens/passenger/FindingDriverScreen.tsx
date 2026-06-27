@@ -69,18 +69,49 @@ export default function FindingDriverScreen({ navigation }: any) {
     }
   };
 
+  const trip = currentTrip;
+  const hasDiscount = trip?.discount && trip.discount > 0;
+  const isScheduled = !!trip?.scheduledAt;
+
   return (
     <View style={styles.container}>
       <View style={styles.spinner}>
         <ActivityIndicator size="large" color="#FFD700" />
         <View style={styles.ring} />
       </View>
-      <Text style={styles.title}>Finding your driver...</Text>
-      <Text style={styles.subtitle}>We're connecting you with a nearby driver</Text>
-      <Text style={styles.hint}>Sharing your location with nearby drivers</Text>
-      <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
-        <Text style={styles.cancelText}>Cancel</Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>
+        {isScheduled ? '🗓️ Ride Scheduled!' : 'Finding your driver...'}
+      </Text>
+      <Text style={styles.subtitle}>
+        {isScheduled
+          ? `Your ride is booked for ${new Date(trip!.scheduledAt!).toLocaleString('en-SA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+          : "We're connecting you with a nearby driver"}
+      </Text>
+
+      {hasDiscount && (
+        <View style={styles.discountBadge}>
+          <Text style={styles.discountText}>🎉 Promo applied! You saved {trip?.discount?.toFixed(2)} SAR</Text>
+        </View>
+      )}
+
+      <View style={styles.fareCard}>
+        <Text style={styles.fareLbl}>Estimated fare</Text>
+        <Text style={styles.fareVal}>{trip?.fareEstimate ?? '—'} SAR</Text>
+        <Text style={styles.fareType}>{trip?.rideType ?? 'ECONOMY'} · {trip?.paymentMethod === 'CASH' ? '💵 Cash' : '💳 Card'}</Text>
+      </View>
+
+      <Text style={styles.hint}>📍 Sharing your location with nearby drivers</Text>
+
+      {!isScheduled && (
+        <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+      )}
+      {isScheduled && (
+        <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+          <Text style={styles.cancelText}>Cancel Booking</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -102,9 +133,24 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFD70033',
   },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a2e', marginBottom: 8 },
-  subtitle: { color: '#666', fontSize: 15, textAlign: 'center', marginBottom: 8 },
-  hint: { color: '#aaa', fontSize: 13, textAlign: 'center', marginBottom: 48 },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a2e', marginBottom: 8, textAlign: 'center' },
+  subtitle: { color: '#666', fontSize: 15, textAlign: 'center', marginBottom: 14, paddingHorizontal: 20 },
+  hint: { color: '#aaa', fontSize: 13, textAlign: 'center', marginBottom: 24 },
+
+  discountBadge: {
+    backgroundColor: '#dcfce7', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
+    marginBottom: 14, borderWidth: 1, borderColor: '#86efac',
+  },
+  discountText: { color: '#166534', fontWeight: '700', fontSize: 14, textAlign: 'center' },
+
+  fareCard: {
+    backgroundColor: '#f8f8f8', borderRadius: 16, paddingHorizontal: 32, paddingVertical: 18,
+    alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#e5e5e5',
+  },
+  fareLbl: { color: '#999', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  fareVal: { color: '#1a1a2e', fontSize: 32, fontWeight: '900', marginTop: 4 },
+  fareType: { color: '#888', fontSize: 13, marginTop: 4 },
+
   cancelBtn: {
     borderWidth: 1.5,
     borderColor: '#ef4444',
