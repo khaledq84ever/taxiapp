@@ -6,13 +6,17 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Share,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 
 export default function TripCompleteScreen({ navigation, route }: any) {
   const { currentTrip } = useSelector((s: RootState) => s.trip);
+  const { user } = useSelector((s: RootState) => s.auth);
   const trip = route.params?.trip || currentTrip || {};
+
+  const referralCode = user?.id?.slice(-6).toUpperCase() ?? 'TAXI00';
 
   const handleRate = () => {
     navigation.replace('RateTrip', { trip });
@@ -20,6 +24,12 @@ export default function TripCompleteScreen({ navigation, route }: any) {
 
   const handleDone = () => {
     navigation.replace('PassengerHome');
+  };
+
+  const handleShare = () => {
+    Share.share({
+      message: `I just took a ride with TaxiApp! Fast, safe & affordable. Use my code ${referralCode} for 20% off your first ride! Download now 🚗`,
+    });
   };
 
   return (
@@ -84,6 +94,17 @@ export default function TripCompleteScreen({ navigation, route }: any) {
               <Text style={styles.statLabel}>SAR</Text>
             </View>
           </View>
+        </View>
+
+        {/* Referral share card */}
+        <View style={styles.referralCard}>
+          <Text style={styles.referralTitle}>🎁 Share & Earn</Text>
+          <Text style={styles.referralDesc}>
+            Give friends 20% off their first ride. You earn 10 SAR for every friend who rides.
+          </Text>
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+            <Text style={styles.shareBtnText}>📤 Share Code {referralCode}</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.rateBtn} onPress={handleRate}>
@@ -157,6 +178,17 @@ const styles = StyleSheet.create({
   statItem: { alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: 'bold', color: '#1a1a2e' },
   statLabel: { color: '#888', fontSize: 12, marginTop: 2 },
+
+  referralCard: {
+    backgroundColor: '#1a1a2e', borderRadius: 20, padding: 20,
+    width: '100%', marginBottom: 16, alignItems: 'center',
+  },
+  referralTitle: { color: '#FFD700', fontSize: 16, fontWeight: '800', marginBottom: 6 },
+  referralDesc: { color: '#aaa', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 14 },
+  shareBtn: {
+    backgroundColor: '#FFD700', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12,
+  },
+  shareBtnText: { color: '#1a1a2e', fontWeight: '800', fontSize: 14 },
 
   rateBtn: {
     backgroundColor: '#FFD700',
