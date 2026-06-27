@@ -89,17 +89,7 @@ export default function TrackDriverScreen({ navigation }: any) {
         dispatch(updateTripStatus({ status: data.status, finalFare: data.finalFare }));
 
         if (data.status === 'COMPLETED') {
-          Alert.alert(
-            'Trip Completed! 🎉',
-            `Total fare: ${data.finalFare} SAR`,
-            [{
-              text: 'Rate Driver',
-              onPress: () => navigation.replace('RateTrip', { trip: { ...currentTrip, finalFare: data.finalFare } }),
-            }, {
-              text: 'Done',
-              onPress: () => navigation.replace('PassengerHome'),
-            }],
-          );
+          navigation.replace('TripComplete', { trip: { ...currentTrip, finalFare: data.finalFare } });
         }
         if (data.status === 'CANCELLED') {
           Alert.alert('Trip Cancelled', 'The trip was cancelled.', [

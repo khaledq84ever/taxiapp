@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, UseGuards, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -17,6 +17,11 @@ export class UsersController {
   @Put('profile')
   updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
     return this.users.updateProfile(userId, dto);
+  }
+
+  @Post('photo')
+  uploadPhoto(@CurrentUser('id') userId: string, @Body('photoUrl') photoUrl: string) {
+    return this.users.uploadPhoto(userId, photoUrl);
   }
 
   @Get('trips/history')

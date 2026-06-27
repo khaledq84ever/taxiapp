@@ -49,7 +49,7 @@ export default function FindingDriverScreen({ navigation }: any) {
       // When a driver accepts
       socketService.on('server:driver-found', (data) => {
         dispatch(setDriverInfo(data.driver));
-        navigation.replace('TrackDriver');
+        navigation.replace('DriverFound');
       });
     };
 

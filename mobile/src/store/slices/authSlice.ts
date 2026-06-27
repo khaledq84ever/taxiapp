@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi, usersApi } from '../../services/api';
+import { authApi, usersApi, tripsApi } from '../../services/api';
 
 interface AuthState {
   user: any | null;
@@ -18,8 +18,11 @@ const initialState: AuthState = {
 export const initAuth = createAsyncThunk('auth/init', async () => {
   const token = await AsyncStorage.getItem('accessToken');
   if (!token) throw new Error('No saved session');
-  const res = await usersApi.getProfile();
-  return { user: res.data, accessToken: token };
+  const [profileRes, activeTrip] = await Promise.all([
+    usersApi.getProfile(),
+    tripsApi.getActive().catch(() => ({ data: null })),
+  ]);
+  return { user: profileRes.data, accessToken: token, activeTrip: activeTrip.data };
 });
 
 export const sendOtp = createAsyncThunk('auth/sendOtp', async (phone: string) => {

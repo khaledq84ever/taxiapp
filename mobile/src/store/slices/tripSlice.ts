@@ -1,6 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { tripsApi } from '../../services/api';
 
+export const fetchActiveTrip = createAsyncThunk('trip/fetchActive', async () => {
+  const res = await tripsApi.getActive();
+  return res.data;
+});
+
 interface TripState {
   currentTrip: any | null;
   fareEstimate: any | null;
@@ -65,7 +70,10 @@ const tripSlice = createSlice({
         state.loading = false;
         state.error = action.error.message ?? 'Failed to request trip';
       })
-      .addCase(cancelTrip.fulfilled, (state) => { state.currentTrip = null; });
+      .addCase(cancelTrip.fulfilled, (state) => { state.currentTrip = null; })
+      .addCase(fetchActiveTrip.fulfilled, (state, action) => {
+        if (action.payload) state.currentTrip = action.payload;
+      });
   },
 });
 
@@ -78,3 +86,5 @@ export const {
   setDriverInfo,
 } = tripSlice.actions;
 export default tripSlice.reducer;
+
+// Re-export thunks from the same module for convenience

@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { RequestTripDto, EstimateFareDto } from './dto/request-trip.dto';
 
 const BASE_FARE = 5;
@@ -8,7 +9,10 @@ const PLATFORM_COMMISSION = 0.2;
 
 @Injectable()
 export class TripsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifs: NotificationsService,
+  ) {}
 
   estimateFare(dto: EstimateFareDto) {
     const distanceKm = this.haversine(dto.pickupLat, dto.pickupLng, dto.dropoffLat, dto.dropoffLng);
@@ -45,6 +49,25 @@ export class TripsService {
     });
   }
 
+  async getActiveTrip(userId: string) {
+    const trip = await this.prisma.trip.findFirst({
+      where: {
+        status: { in: ['REQUESTED', 'ACCEPTED', 'DRIVER_ARRIVED', 'IN_PROGRESS'] },
+        OR: [
+          { passengerId: userId },
+          { driver: { userId } },
+        ],
+      },
+      include: {
+        passenger: { select: { name: true, phone: true, profilePhoto: true } },
+        driver: { include: { user: { select: { name: true, phone: true, profilePhoto: true } } } },
+        payment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return trip ?? null;
+  }
+
   async getTrip(tripId: string, userId: string) {
     const trip = await this.prisma.trip.findUnique({
       where: { id: tripId },
@@ -73,11 +96,25 @@ export class TripsService {
   }
 
   async markArrived(tripId: string, userId: string) {
-    return this.updateTripStatus(tripId, userId, 'ACCEPTED', 'DRIVER_ARRIVED', { arrivedAt: new Date() });
+    const trip = await this.updateTripStatus(tripId, userId, 'ACCEPTED', 'DRIVER_ARRIVED', { arrivedAt: new Date() });
+    this.notifs.sendPush(trip.passengerId, {
+      title: '🚗 Driver Arrived!',
+      body: 'Your driver is waiting at the pickup point',
+      data: { tripId: trip.id, type: 'DRIVER_ARRIVED' },
+    });
+    this.notifs.saveInApp(trip.passengerId, 'Driver Arrived!', 'Your driver is at the pickup point', 'DRIVER_ARRIVED');
+    return trip;
   }
 
   async startTrip(tripId: string, userId: string) {
-    return this.updateTripStatus(tripId, userId, 'DRIVER_ARRIVED', 'IN_PROGRESS', { startedAt: new Date() });
+    const trip = await this.updateTripStatus(tripId, userId, 'DRIVER_ARRIVED', 'IN_PROGRESS', { startedAt: new Date() });
+    this.notifs.sendPush(trip.passengerId, {
+      title: '🚀 Trip Started',
+      body: 'Your trip is now in progress. Enjoy the ride!',
+      data: { tripId: trip.id, type: 'TRIP_STARTED' },
+    });
+    this.notifs.saveInApp(trip.passengerId, 'Trip Started', 'Your ride is in progress', 'TRIP_STARTED');
+    return trip;
   }
 
   async completeTrip(tripId: string, userId: string) {

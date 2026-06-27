@@ -11,11 +11,35 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+let isRefreshing = false;
+
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
-    if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('accessToken');
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry && !original.url?.includes('refresh-token')) {
+      if (isRefreshing) {
+        await AsyncStorage.removeItem('accessToken');
+        return Promise.reject(error);
+      }
+      original._retry = true;
+      isRefreshing = true;
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        if (token) {
+          const res = await api.post('/auth/refresh-token', {}, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const newToken = res.data.accessToken;
+          await AsyncStorage.setItem('accessToken', newToken);
+          original.headers.Authorization = `Bearer ${newToken}`;
+          return api(original);
+        }
+      } catch {
+        await AsyncStorage.removeItem('accessToken');
+      } finally {
+        isRefreshing = false;
+      }
     }
     return Promise.reject(error);
   },
@@ -45,6 +69,7 @@ export const driversApi = {
 export const tripsApi = {
   estimate: (data: any) => api.post('/trips/estimate', data),
   request: (data: any) => api.post('/trips/request', data),
+  getActive: () => api.get('/trips/active'),
   getTrip: (id: string) => api.get(`/trips/${id}`),
   accept: (id: string) => api.put(`/trips/${id}/accept`),
   markArrived: (id: string) => api.put(`/trips/${id}/arrived`),
@@ -55,6 +80,17 @@ export const tripsApi = {
 
 export const ratingsApi = {
   create: (data: any) => api.post('/ratings', data),
+};
+
+export const notificationsApi = {
+  getAll: (page = 1) => api.get(`/notifications?page=${page}`),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markAllRead: () => api.put('/notifications/read-all'),
+};
+
+export const paymentsApi = {
+  createIntent: (tripId: string) => api.post('/payments/create-intent', { tripId }),
+  confirm: (tripId: string) => api.post('/payments/confirm', { tripId }),
 };
 
 export default api;

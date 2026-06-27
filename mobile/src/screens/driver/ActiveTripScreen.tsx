@@ -115,9 +115,7 @@ export default function ActiveTripScreen({ navigation, route }: any) {
       } else if (status === 'IN_PROGRESS') {
         await tripsApi.complete(trip.id);
         socketService.emit('driver:trip-completed', { tripId: trip.id });
-        Alert.alert('Trip Completed! 🎉', `Fare: ${trip.fareEstimate} SAR`, [
-          { text: 'OK', onPress: () => navigation.replace('DriverHome') },
-        ]);
+        navigation.replace('DriverTripComplete', { trip });
       }
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Action failed. Try again.');

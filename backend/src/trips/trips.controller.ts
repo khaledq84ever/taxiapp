@@ -19,6 +19,11 @@ export class TripsController {
     return this.trips.requestTrip(userId, dto);
   }
 
+  @Get('active')
+  getActive(@CurrentUser('id') userId: string) {
+    return this.trips.getActiveTrip(userId);
+  }
+
   @Get(':id')
   getTrip(@Param('id') tripId: string, @CurrentUser('id') userId: string) {
     return this.trips.getTrip(tripId, userId);
