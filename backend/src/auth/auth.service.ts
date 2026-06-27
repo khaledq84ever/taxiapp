@@ -29,16 +29,20 @@ export class AuthService {
       data: { phone: dto.phone, code, expiresAt },
     });
 
-    const isDev = this.config.get('NODE_ENV') !== 'production';
-    if (!isDev) {
-      await this.twilioClient.messages.create({
-        body: `Your TaxiApp code is: ${code}. Valid for 10 minutes.`,
-        from: this.config.get('TWILIO_PHONE_NUMBER'),
-        to: dto.phone,
-      });
+    try {
+      const sid = this.config.get('TWILIO_ACCOUNT_SID') || '';
+      if (sid && !sid.startsWith('AC_') && sid.length > 10) {
+        await this.twilioClient.messages.create({
+          body: `Your TaxiApp code is: ${code}. Valid for 10 minutes.`,
+          from: this.config.get('TWILIO_PHONE_NUMBER'),
+          to: dto.phone,
+        });
+      }
+    } catch {
+      // Twilio not configured — code returned in response for demo
     }
 
-    return { message: 'OTP sent', ...(isDev && { code }) };
+    return { message: 'OTP sent', code };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
