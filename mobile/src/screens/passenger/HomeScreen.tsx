@@ -182,6 +182,22 @@ export default function PassengerHomeScreen({ navigation }: any) {
           <Text style={styles.historyText}>View trip history</Text>
           <Text style={styles.historyArrow}>›</Text>
         </TouchableOpacity>
+
+        {/* Become a Driver CTA */}
+        <TouchableOpacity
+          style={styles.driverCta}
+          onPress={() => navigation.navigate('DriverRegister')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.driverCtaLeft}>
+            <Text style={styles.driverCtaIcon}>🚗</Text>
+            <View>
+              <Text style={styles.driverCtaTitle}>Earn 150–400 SAR/day</Text>
+              <Text style={styles.driverCtaDesc}>Drive with us — join thousands of drivers</Text>
+            </View>
+          </View>
+          <Text style={styles.driverCtaArrow}>›</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -276,9 +292,19 @@ const styles = StyleSheet.create({
 
   historyRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingTop: 14, borderTopWidth: 1, borderTopColor: '#f0f0f0',
+    paddingTop: 14, borderTopWidth: 1, borderTopColor: '#f0f0f0', marginBottom: 10,
   },
   historyIcon: { fontSize: 16 },
   historyText: { flex: 1, color: '#FFD700', fontWeight: '700', fontSize: 14 },
   historyArrow: { color: '#ccc', fontSize: 22 },
+
+  driverCta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16,
+  },
+  driverCtaLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  driverCtaIcon: { fontSize: 28 },
+  driverCtaTitle: { color: '#FFD700', fontWeight: '800', fontSize: 14 },
+  driverCtaDesc: { color: '#aaa', fontSize: 12, marginTop: 2 },
+  driverCtaArrow: { color: '#FFD700', fontSize: 22, fontWeight: 'bold' },
 });

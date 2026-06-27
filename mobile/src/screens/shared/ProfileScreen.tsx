@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Clipboard,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -162,6 +163,55 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {/* Referral code */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Your Referral Code</Text>
+        <TouchableOpacity
+          style={styles.referralCard}
+          onPress={() => {
+            const code = user?.id?.slice(-6).toUpperCase() ?? 'TAXI00';
+            Clipboard.setString(code);
+            Alert.alert('Copied!', `Share code ${code} with friends. They get 20% off their first ride!`);
+          }}
+        >
+          <View style={styles.referralLeft}>
+            <Text style={styles.referralCode}>{user?.id?.slice(-6).toUpperCase() ?? 'TAXI00'}</Text>
+            <Text style={styles.referralDesc}>Share & earn 10 SAR per friend who rides</Text>
+          </View>
+          <Text style={styles.referralCopy}>📋 Copy</Text>
+        </TouchableOpacity>
+        <View style={styles.referralTip}>
+          <Text style={styles.referralTipText}>💡 Friends get 20% off first ride when they use your code</Text>
+        </View>
+      </View>
+
+      {/* Promo codes section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Available Promos</Text>
+        <View style={styles.promoList}>
+          {[
+            { code: 'WELCOME50', label: '50% off — new user gift', color: '#dcfce7' },
+            { code: 'FIRST30',   label: '30% off your first ride', color: '#dbeafe' },
+            { code: 'TAXIAPP20', label: '20% off — app launch',    color: '#fef9c3' },
+          ].map((p) => (
+            <TouchableOpacity
+              key={p.code}
+              style={[styles.promoItem, { backgroundColor: p.color }]}
+              onPress={() => {
+                Clipboard.setString(p.code);
+                Alert.alert('Copied!', `Use ${p.code} when booking your ride.`);
+              }}
+            >
+              <View>
+                <Text style={styles.promoItemCode}>{p.code}</Text>
+                <Text style={styles.promoItemLabel}>{p.label}</Text>
+              </View>
+              <Text style={styles.promoItemCopy}>Tap to copy</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
@@ -281,6 +331,30 @@ const styles = StyleSheet.create({
   infoLabel: { color: '#666', fontSize: 14, flex: 1 },
   infoValue: { color: '#1a1a2e', fontSize: 14, fontWeight: '600' },
   infoDivider: { height: 1, backgroundColor: '#f0f0f0', marginLeft: 56 },
+
+  referralCard: {
+    backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  referralLeft: { flex: 1 },
+  referralCode: { color: '#FFD700', fontSize: 26, fontWeight: '900', letterSpacing: 3 },
+  referralDesc: { color: '#aaa', fontSize: 12, marginTop: 4 },
+  referralCopy: { color: '#FFD700', fontSize: 14, fontWeight: '700' },
+  referralTip: {
+    backgroundColor: '#FFFDE7', borderRadius: 12, padding: 10, marginTop: 8,
+    borderWidth: 1, borderColor: '#FFD700',
+  },
+  referralTipText: { color: '#1a1a2e', fontSize: 12, fontWeight: '500' },
+
+  promoList: { gap: 8 },
+  promoItem: {
+    borderRadius: 12, padding: 14, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1, borderColor: '#e5e5e5',
+  },
+  promoItemCode: { fontSize: 15, fontWeight: '800', color: '#1a1a2e', letterSpacing: 1 },
+  promoItemLabel: { fontSize: 12, color: '#666', marginTop: 2 },
+  promoItemCopy: { fontSize: 11, color: '#888', fontWeight: '600' },
 
   logoutBtn: {
     backgroundColor: '#FEE2E2',

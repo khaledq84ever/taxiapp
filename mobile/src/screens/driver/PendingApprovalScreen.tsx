@@ -107,6 +107,28 @@ export default function PendingApprovalScreen({ navigation }: any) {
               ))}
             </View>
 
+            {/* Earnings preview while waiting */}
+            {status === 'PENDING' && (
+              <View style={styles.earningsPreview}>
+                <Text style={styles.earningsPreviewTitle}>💰 What you could earn</Text>
+                <View style={styles.earningsRow}>
+                  <View style={styles.earningsItem}>
+                    <Text style={styles.earningsValue}>150 SAR</Text>
+                    <Text style={styles.earningsLabel}>Slow day</Text>
+                  </View>
+                  <View style={[styles.earningsItem, styles.earningsItemHighlight]}>
+                    <Text style={[styles.earningsValue, { color: '#FFD700' }]}>280 SAR</Text>
+                    <Text style={[styles.earningsLabel, { color: '#aaa' }]}>Avg day</Text>
+                  </View>
+                  <View style={styles.earningsItem}>
+                    <Text style={styles.earningsValue}>400 SAR</Text>
+                    <Text style={styles.earningsLabel}>Rush day</Text>
+                  </View>
+                </View>
+                <Text style={styles.earningsNote}>80% of every fare goes directly to you</Text>
+              </View>
+            )}
+
             <TouchableOpacity style={styles.refreshBtn} onPress={load}>
               <Text style={styles.refreshText}>🔄 Check Status</Text>
             </TouchableOpacity>
@@ -212,4 +234,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logoutText: { color: '#555', fontSize: 15 },
+
+  earningsPreview: {
+    backgroundColor: 'rgba(255,215,0,0.08)', borderRadius: 16, padding: 18,
+    width: '100%', marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,215,0,0.2)',
+  },
+  earningsPreviewTitle: { color: '#FFD700', fontWeight: '700', fontSize: 14, marginBottom: 14, textAlign: 'center' },
+  earningsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  earningsItem: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
+    padding: 12, alignItems: 'center',
+  },
+  earningsItemHighlight: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#FFD700' },
+  earningsValue: { color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 3 },
+  earningsLabel: { color: '#666', fontSize: 11, fontWeight: '600' },
+  earningsNote: { color: '#888', fontSize: 12, textAlign: 'center' },
 });

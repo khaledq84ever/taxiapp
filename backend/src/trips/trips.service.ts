@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PromosService } from '../promos/promos.service';
 import { RequestTripDto, EstimateFareDto, RideType, RIDE_TYPE_MULTIPLIER } from './dto/request-trip.dto';
 
 const BASE_FARE = 5;
@@ -20,6 +21,7 @@ export class TripsService {
   constructor(
     private prisma: PrismaService,
     private notifs: NotificationsService,
+    private promos: PromosService,
   ) {}
 
   estimateFare(dto: EstimateFareDto) {
@@ -51,6 +53,17 @@ export class TripsService {
     });
     if (activeTrip) throw new BadRequestException('You already have an active trip');
 
+    let promoCodeId: string | undefined;
+    let discount = 0;
+    if (dto.promoCode) {
+      const promo = await this.promos.validate(dto.promoCode);
+      discount = Math.round(estimate.estimatedFare * (promo.discountPct / 100) * 100) / 100;
+      promoCodeId = promo.id;
+      await this.promos.apply(promo.id);
+    }
+
+    const finalEstimate = Math.max(0, estimate.estimatedFare - discount);
+
     return this.prisma.trip.create({
       data: {
         passengerId,
@@ -60,9 +73,13 @@ export class TripsService {
         dropoffAddress: dto.dropoffAddress,
         dropoffLat: dto.dropoffLat,
         dropoffLng: dto.dropoffLng,
-        fareEstimate: estimate.estimatedFare,
+        rideType: dto.rideType ?? RideType.ECONOMY,
+        fareEstimate: finalEstimate,
+        discount,
         distanceKm: estimate.distanceKm,
         paymentMethod: dto.paymentMethod,
+        promoCodeId: promoCodeId ?? null,
+        scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
       },
       include: { passenger: { select: { name: true, phone: true, profilePhoto: true } } },
     });

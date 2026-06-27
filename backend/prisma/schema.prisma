@@ -33,6 +33,12 @@ enum PaymentMethod {
   CARD
 }
 
+enum RideType {
+  ECONOMY
+  COMFORT
+  PREMIUM
+}
+
 enum PaymentStatus {
   PENDING
   PAID
@@ -52,17 +58,20 @@ enum NotificationType {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  phone        String   @unique
-  name         String?
-  email        String?  @unique
-  role         Role     @default(PASSENGER)
-  profilePhoto String?
-  fcmToken     String?
-  isActive     Boolean  @default(true)
-  isVerified   Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  phone          String   @unique
+  name           String?
+  email          String?  @unique
+  role           Role     @default(PASSENGER)
+  profilePhoto   String?
+  fcmToken       String?
+  isActive       Boolean  @default(true)
+  isVerified     Boolean  @default(false)
+  referralCode   String?  @unique
+  referralCount  Int      @default(0)
+  walletBalance  Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   driver           Driver?
   tripsAsPassenger Trip[]         @relation("PassengerTrips")
@@ -71,6 +80,22 @@ model User {
   notifications    Notification[]
 
   @@map("users")
+}
+
+model PromoCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  label       String
+  discountPct Int
+  maxUses     Int       @default(1000)
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  trips Trip[]
+
+  @@map("promo_codes")
 }
 
 model Driver {
@@ -111,12 +136,16 @@ model Trip {
   dropoffLat     Float
   dropoffLng     Float
   status         TripStatus    @default(REQUESTED)
+  rideType       RideType      @default(ECONOMY)
   fareEstimate   Float
   finalFare      Float?
+  discount       Float         @default(0)
   distanceKm     Float?
   durationMin    Int?
   paymentMethod  PaymentMethod @default(CASH)
   paymentStatus  PaymentStatus @default(PENDING)
+  promoCodeId    String?
+  scheduledAt    DateTime?
   cancelledBy    String?
   cancelReason   String?
   createdAt      DateTime      @default(now())
@@ -126,8 +155,9 @@ model Trip {
   completedAt    DateTime?
   updatedAt      DateTime      @updatedAt
 
-  passenger User    @relation("PassengerTrips", fields: [passengerId], references: [id])
-  driver    Driver? @relation(fields: [driverId], references: [id])
+  passenger User       @relation("PassengerTrips", fields: [passengerId], references: [id])
+  driver    Driver?    @relation(fields: [driverId], references: [id])
+  promoCode PromoCode? @relation(fields: [promoCodeId], references: [id])
   payment   Payment?
   ratings   Rating[]
 

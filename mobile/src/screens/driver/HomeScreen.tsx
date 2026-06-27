@@ -259,14 +259,26 @@ export default function DriverHomeScreen({ navigation }: any) {
               </View>
             </View>
 
+            {/* Scheduled badge */}
+            {tripRequest?.trip?.scheduledAt && (
+              <View style={styles.scheduledBadge}>
+                <Text style={styles.scheduledIcon}>🗓️</Text>
+                <Text style={styles.scheduledText}>
+                  Scheduled: {new Date(tripRequest.trip.scheduledAt).toLocaleString('en-SA', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.fareRow}>
               <View style={styles.fareItem}>
                 <Text style={styles.fareLabel}>Fare</Text>
                 <Text style={styles.fareValue}>{tripRequest?.trip?.fareEstimate} SAR</Text>
               </View>
               <View style={styles.fareItem}>
-                <Text style={styles.fareLabel}>Distance</Text>
-                <Text style={styles.fareValue}>{tripRequest?.trip?.distanceKm} km</Text>
+                <Text style={styles.fareLabel}>Type</Text>
+                <Text style={styles.fareValue}>{tripRequest?.trip?.rideType ?? 'ECONOMY'}</Text>
               </View>
               <View style={styles.fareItem}>
                 <Text style={styles.fareLabel}>Payment</Text>
@@ -411,6 +423,14 @@ const styles = StyleSheet.create({
   fareItem: { alignItems: 'center' },
   fareLabel: { color: '#999', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
   fareValue: { color: '#1a1a2e', fontSize: 16, fontWeight: 'bold', marginTop: 4 },
+
+  scheduledBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#dbeafe', borderRadius: 10, padding: 10, marginBottom: 12,
+    borderWidth: 1, borderColor: '#93c5fd',
+  },
+  scheduledIcon: { fontSize: 16 },
+  scheduledText: { color: '#1d4ed8', fontWeight: '600', fontSize: 13 },
 
   modalActions: { flexDirection: 'row', gap: 12 },
   declineBtn: {

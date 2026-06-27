@@ -46,6 +46,14 @@ export class RequestTripDto {
   @IsOptional()
   @IsNumber()
   surgeMultiplier?: number;
+
+  @IsOptional()
+  @IsString()
+  promoCode?: string;
+
+  @IsOptional()
+  @IsString()
+  scheduledAt?: string;
 }
 
 export class EstimateFareDto {
