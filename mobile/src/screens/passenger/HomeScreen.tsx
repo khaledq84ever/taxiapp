@@ -11,7 +11,7 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { driversApi } from '../../services/api';
+import { driversApi, notificationsApi } from '../../services/api';
 import { setNearbyDrivers } from '../../store/slices/tripSlice';
 
 export default function PassengerHomeScreen({ navigation }: any) {
@@ -19,7 +19,16 @@ export default function PassengerHomeScreen({ navigation }: any) {
   const { user } = useSelector((s: RootState) => s.auth);
   const [location, setLocation] = useState<any>(null);
   const [nearbyDrivers, setNearbyDriversLocal] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const mapRef = useRef<MapView>(null);
+
+  useEffect(() => {
+    notificationsApi.getUnreadCount().then((res) => setUnreadCount(res.data.count)).catch(() => {});
+    const interval = setInterval(() => {
+      notificationsApi.getUnreadCount().then((res) => setUnreadCount(res.data.count)).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -94,6 +103,17 @@ export default function PassengerHomeScreen({ navigation }: any) {
             </Text>
           </View>
         )}
+        <TouchableOpacity
+          style={styles.profileBtn}
+          onPress={() => navigation.navigate('Notifications')}
+        >
+          <Text style={styles.profileBtnText}>🔔</Text>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.profileBtn}
           onPress={() => navigation.navigate('Profile')}
@@ -187,6 +207,19 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   profileBtnText: { fontSize: 20 },
+  badge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    backgroundColor: '#ef4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
 
   panel: {
     backgroundColor: '#fff',

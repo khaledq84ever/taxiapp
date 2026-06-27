@@ -11,6 +11,7 @@ import ChatScreen from '../screens/shared/ChatScreen';
 import ProfileScreen from '../screens/shared/ProfileScreen';
 import OnboardingScreen from '../screens/shared/OnboardingScreen';
 import SettingsScreen from '../screens/shared/SettingsScreen';
+import NotificationsScreen from '../screens/shared/NotificationsScreen';
 
 import PassengerHomeScreen from '../screens/passenger/HomeScreen';
 import BookRideScreen from '../screens/passenger/BookRideScreen';
@@ -122,6 +123,11 @@ export default function AppNavigator() {
               component={SettingsScreen}
               options={{ title: 'Settings' }}
             />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ title: 'Notifications' }}
+            />
           </>
         ) : (
           <>
@@ -179,6 +185,11 @@ export default function AppNavigator() {
               name="Settings"
               component={SettingsScreen}
               options={{ title: 'Settings' }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ title: 'Notifications' }}
             />
           </>
         )}
