@@ -8,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  Clipboard,
+  Share,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -170,15 +170,16 @@ export default function ProfileScreen() {
           style={styles.referralCard}
           onPress={() => {
             const code = user?.id?.slice(-6).toUpperCase() ?? 'TAXI00';
-            Clipboard.setString(code);
-            Alert.alert('Copied!', `Share code ${code} with friends. They get 20% off their first ride!`);
+            Share.share({
+              message: `Use my TaxiApp code ${code} and get 20% off your first ride! Download: taxiapp.sa`,
+            });
           }}
         >
           <View style={styles.referralLeft}>
             <Text style={styles.referralCode}>{user?.id?.slice(-6).toUpperCase() ?? 'TAXI00'}</Text>
             <Text style={styles.referralDesc}>Share & earn 10 SAR per friend who rides</Text>
           </View>
-          <Text style={styles.referralCopy}>📋 Copy</Text>
+          <Text style={styles.referralCopy}>📤 Share</Text>
         </TouchableOpacity>
         <View style={styles.referralTip}>
           <Text style={styles.referralTipText}>💡 Friends get 20% off first ride when they use your code</Text>
@@ -198,15 +199,14 @@ export default function ProfileScreen() {
               key={p.code}
               style={[styles.promoItem, { backgroundColor: p.color }]}
               onPress={() => {
-                Clipboard.setString(p.code);
-                Alert.alert('Copied!', `Use ${p.code} when booking your ride.`);
+                Share.share({ message: `Use promo code ${p.code} on TaxiApp for a discount! ${p.label}` });
               }}
             >
               <View>
                 <Text style={styles.promoItemCode}>{p.code}</Text>
                 <Text style={styles.promoItemLabel}>{p.label}</Text>
               </View>
-              <Text style={styles.promoItemCopy}>Tap to copy</Text>
+              <Text style={styles.promoItemCopy}>Tap to share</Text>
             </TouchableOpacity>
           ))}
         </View>
