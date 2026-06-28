@@ -494,8 +494,8 @@
       <div class="step-card">
         <div class="step-num">STEP 01</div>
         <div class="step-icon">📱</div>
-        <h3>Sign Up with Phone</h3>
-        <p>Register using your Saudi phone number (+966). Receive a 6-digit OTP via SMS. No passwords needed.</p>
+        <h3>Open the App</h3>
+        <p>Launch TaxiApp and you're instantly signed in as a passenger. No registration, no OTP, no password needed.</p>
         <div class="step-connector">→</div>
       </div>
       <div class="step-card">
@@ -537,9 +537,9 @@
         <p>Socket.io WebSocket connection updates driver position every 5 seconds on Google Maps. Zero lag.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(76,175,80,0.1)">🔐</div>
-        <h3>OTP Authentication</h3>
-        <p>Phone-based login via Twilio SMS. JWT tokens with role-based access: Passenger, Driver, Admin.</p>
+        <div class="feature-icon" style="background:rgba(76,175,80,0.1)">⚡</div>
+        <h3>Instant Guest Login</h3>
+        <p>No registration required. Open the app and ride immediately. JWT tokens with role-based access: Passenger, Driver, Admin.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:rgba(33,150,243,0.1)">💰</div>
@@ -592,7 +592,7 @@
         <div class="app-tag">For Passengers</div>
         <h3>Book a Ride Instantly</h3>
         <ul class="app-features">
-          <li>Register with Saudi phone number</li>
+          <li>Open app — no registration needed</li>
           <li>See nearby drivers on live map</li>
           <li>Get fare estimate before booking</li>
           <li>Track driver in real-time</li>
@@ -636,40 +636,38 @@
     </div>
     <div class="api-box fade-up">
       <div class="api-tab">
-        <span class="active">Send OTP</span>
+        <span class="active">Guest Login</span>
         <span>Estimate Fare</span>
         <span>Book Ride</span>
       </div>
       <div class="api-url">
         <span class="method post">POST</span>
-        <code>https://taxiapp-api-production.up.railway.app/api/v1/auth/send-otp</code>
+        <code>https://taxiapp-api-production.up.railway.app/api/v1/auth/guest</code>
       </div>
-      <pre><span style="color:#6e7681">// Request body</span>
-{
-  <span class="json-key">"phone"</span>: <span class="json-str">"+966501234567"</span>
-}
+      <pre><span style="color:#6e7681">// No body required — instant silent sign-in</span>
+POST /auth/guest
 
-<span style="color:#6e7681">// Response (development mode shows the code)</span>
-{
-  <span class="json-key">"message"</span>: <span class="json-str">"OTP sent"</span>,
-  <span class="json-key">"code"</span>: <span class="json-str">"482910"</span>
-}
-
-<span style="color:#6e7681">// Then verify the OTP</span>
-POST /auth/verify-otp
-{
-  <span class="json-key">"phone"</span>: <span class="json-str">"+966501234567"</span>,
-  <span class="json-key">"code"</span>:  <span class="json-str">"482910"</span>
-}
-
-<span style="color:#6e7681">// Returns JWT token + user object</span>
+<span style="color:#6e7681">// Response — JWT token + auto-created passenger</span>
 {
   <span class="json-key">"accessToken"</span>: <span class="json-str">"eyJhbGciOiJIUzI1NiJ9..."</span>,
   <span class="json-key">"user"</span>: {
-    <span class="json-key">"id"</span>:    <span class="json-str">"clxyz123..."</span>,
-    <span class="json-key">"phone"</span>: <span class="json-str">"+966501234567"</span>,
-    <span class="json-key">"role"</span>:  <span class="json-str">"PASSENGER"</span>
+    <span class="json-key">"id"</span>:       <span class="json-str">"clxyz123..."</span>,
+    <span class="json-key">"role"</span>:     <span class="json-str">"PASSENGER"</span>,
+    <span class="json-key">"isGuest"</span>: <span class="json-bool">true</span>
   }
+}
+
+<span style="color:#6e7681">// Use the token in all subsequent requests</span>
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+
+<span style="color:#6e7681">// Then estimate a fare</span>
+POST /trips/estimate
+{
+  <span class="json-key">"pickupLat"</span>:  <span class="json-num">24.7136</span>,
+  <span class="json-key">"pickupLng"</span>:  <span class="json-num">46.6753</span>,
+  <span class="json-key">"dropoffLat"</span>: <span class="json-num">24.7441</span>,
+  <span class="json-key">"dropoffLng"</span>: <span class="json-num">46.6917</span>,
+  <span class="json-key">"rideType"</span>:   <span class="json-str">"ECONOMY"</span>
 }</pre>
     </div>
     <div style="margin-top:24px;text-align:center">
@@ -690,7 +688,7 @@ POST /auth/verify-otp
     <div class="tech-grid fade-up">
       <div class="tech-pill">🔴 <strong>NestJS</strong> &nbsp;<span style="color:var(--muted);font-weight:400">Backend API</span></div>
       <div class="tech-pill">⚛️ <strong>React Native</strong> &nbsp;<span style="color:var(--muted);font-weight:400">Mobile App</span></div>
-      <div class="tech-pill">🟡 <strong>Expo SDK 52</strong> &nbsp;<span style="color:var(--muted);font-weight:400">iOS + Android</span></div>
+      <div class="tech-pill">🟡 <strong>Expo SDK 56</strong> &nbsp;<span style="color:var(--muted);font-weight:400">iOS + Android</span></div>
       <div class="tech-pill">🐘 <strong>PostgreSQL</strong> &nbsp;<span style="color:var(--muted);font-weight:400">Database</span></div>
       <div class="tech-pill">🔷 <strong>Prisma ORM</strong> &nbsp;<span style="color:var(--muted);font-weight:400">Type-safe DB</span></div>
       <div class="tech-pill">⚡ <strong>Socket.io</strong> &nbsp;<span style="color:var(--muted);font-weight:400">Real-time</span></div>
@@ -736,7 +734,7 @@ POST /auth/verify-otp
           <div class="dl-step"><span class="dl-step-num">1</span> Tap "Download APK" button above</div>
           <div class="dl-step"><span class="dl-step-num">2</span> Go to Settings → Security → Allow unknown apps</div>
           <div class="dl-step"><span class="dl-step-num">3</span> Open the downloaded file and tap Install</div>
-          <div class="dl-step"><span class="dl-step-num">4</span> Open TaxiApp and register your account</div>
+          <div class="dl-step"><span class="dl-step-num">4</span> Open TaxiApp — you're instantly ready to book!</div>
         </div>
       </div>
 
@@ -756,28 +754,28 @@ POST /auth/verify-otp
         </div>
         <div class="dl-steps">
           <div class="dl-step"><span class="dl-step-num">1</span> Download Expo Go from the App Store</div>
-          <div class="dl-step"><span class="dl-step-num">2</span> Open your iPhone camera</div>
-          <div class="dl-step"><span class="dl-step-num">3</span> Scan the QR code on the right</div>
+          <div class="dl-step"><span class="dl-step-num">2</span> Open Expo Go and tap "Enter URL manually"</div>
+          <div class="dl-step"><span class="dl-step-num">3</span> Contact us for the Expo link</div>
           <div class="dl-step"><span class="dl-step-num">4</span> TaxiApp launches instantly!</div>
         </div>
       </div>
 
-      <!-- Expo Go QR -->
+      <!-- QR to APK download -->
       <div class="dl-card dl-card-qr">
-        <div class="dl-card-icon">📱</div>
-        <h3>Scan &amp; Open Now</h3>
-        <p>Android or iPhone — scan with your camera to launch TaxiApp instantly via Expo Go</p>
+        <div class="dl-card-icon">📲</div>
+        <h3>Scan to Download</h3>
+        <p>Android — point your camera at this QR code to download the APK directly</p>
         <div class="dl-qr-box">
           <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=FFD700&bgcolor=1e1e30&data=exp%3A%2F%2Ftmdxg.anonymous.ws-anonymous-8081.exp.direct%3A80"
-            alt="TaxiApp QR Code"
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=FFD700&bgcolor=1e1e30&data=https%3A%2F%2Fapkweb-production.up.railway.app%2Ftaxiapp.apk"
+            alt="Download TaxiApp APK"
             class="dl-qr-img"
           />
-          <p class="dl-qr-caption">Works with Expo Go app</p>
+          <p class="dl-qr-caption">Points to Android APK download</p>
         </div>
         <div class="dl-badge-row" style="justify-content:center; margin-top:10px;">
           <span class="dl-badge dl-badge-live">● Live</span>
-          <span class="dl-badge">Android &amp; iOS</span>
+          <span class="dl-badge">Android 8+</span>
         </div>
       </div>
 
