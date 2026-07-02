@@ -21,6 +21,12 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private connectedUsers = new Map<string, string>();
   private passengerLocations = new Map<string, { lat: number; lng: number }>();
   private lastDbSave = new Map<string, number>();
+  // Live odometer: tracks actual km driven per trip (only counts when driver is moving)
+  private tripOdometer = new Map<string, { lastLat: number; lastLng: number; totalKm: number; rideType: string; surgeMultiplier: number }>();
+
+  private readonly BASE_FARE = 5;
+  private readonly PER_KM = 2.5;
+  private readonly RIDE_MULTIPLIER: Record<string, number> = { ECONOMY: 1.0, COMFORT: 1.35, PREMIUM: 1.7 };
 
   constructor(
     private jwt: JwtService,
@@ -90,6 +96,45 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (!activeTrip) return;
 
+    // ── Live odometer: only counts distance while driver is moving ──────────
+    if (activeTrip.status === 'IN_PROGRESS') {
+      const odo = this.tripOdometer.get(activeTrip.id);
+      if (!odo) {
+        // First IN_PROGRESS update — start tracking from current position
+        this.tripOdometer.set(activeTrip.id, {
+          lastLat: data.lat, lastLng: data.lng, totalKm: 0,
+          rideType: activeTrip.rideType ?? 'ECONOMY',
+          surgeMultiplier: activeTrip.fareEstimate / Math.max(0.01,
+            (this.BASE_FARE + (activeTrip.distanceKm ?? 1) * this.PER_KM) *
+            (this.RIDE_MULTIPLIER[activeTrip.rideType ?? 'ECONOMY'] ?? 1)),
+        });
+      } else {
+        const moved = this.haversine(odo.lastLat, odo.lastLng, data.lat, data.lng);
+        // Only add to odometer if driver moved more than 10 m — ignores stops
+        if (moved >= 0.01) {
+          const totalKm = odo.totalKm + moved;
+          const mult = this.RIDE_MULTIPLIER[odo.rideType] ?? 1.0;
+          const liveFare = Math.round((this.BASE_FARE + totalKm * this.PER_KM) * mult * odo.surgeMultiplier * 100) / 100;
+          this.tripOdometer.set(activeTrip.id, { ...odo, lastLat: data.lat, lastLng: data.lng, totalKm });
+
+          // Push live fare to passenger — meter only ticks when moving
+          this.server.to(`user:${activeTrip.passengerId}`).emit('server:fare-update', {
+            distanceKm: Math.round(totalKm * 10) / 10,
+            currentFare: liveFare,
+            moving: true,
+          });
+        } else {
+          // Driver stopped — update position without counting distance, notify passenger meter is paused
+          this.tripOdometer.set(activeTrip.id, { ...odo, lastLat: data.lat, lastLng: data.lng });
+          this.server.to(`user:${activeTrip.passengerId}`).emit('server:fare-update', {
+            distanceKm: Math.round(odo.totalKm * 10) / 10,
+            currentFare: Math.round((this.BASE_FARE + odo.totalKm * this.PER_KM) * (this.RIDE_MULTIPLIER[odo.rideType] ?? 1) * odo.surgeMultiplier * 100) / 100,
+            moving: false,
+          });
+        }
+      }
+    }
+
     // ETA target: passenger pickup for ACCEPTED/DRIVER_ARRIVED, destination for IN_PROGRESS
     let targetLat: number;
     let targetLng: number;
@@ -154,7 +199,21 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join('public:drivers');
   }
 
-  // ─── passenger broadcasts trip request to nearby drivers ─────────────────
+  // ─── any user joins public requests room to see live trip demand ─────────
+  @SubscribeMessage('join:public-requests')
+  async handleJoinPublicRequests(@ConnectedSocket() client: Socket) {
+    client.join('public:requests');
+    // Send all currently pending requests so map is populated on join
+    const pending = await this.prisma.trip.findMany({
+      where: { status: 'REQUESTED' },
+      select: { id: true, pickupLat: true, pickupLng: true, pickupAddress: true, fareEstimate: true, rideType: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    client.emit('public:requests-snapshot', pending);
+  }
+
+  // ─── passenger broadcasts trip request to nearest drivers ────────────────
   @SubscribeMessage('passenger:trip-request')
   async handleTripRequest(
     @ConnectedSocket() client: Socket,
@@ -162,33 +221,62 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const trip = await this.prisma.trip.findUnique({
       where: { id: data.tripId },
-      include: {
-        passenger: { select: { name: true, phone: true, profilePhoto: true } },
-      },
+      include: { passenger: { select: { name: true, phone: true, profilePhoto: true } } },
     });
-
     if (!trip) return;
 
-    const nearbyDrivers = await this.prisma.driver.findMany({
+    const allDrivers = await this.prisma.driver.findMany({
       where: { isOnline: true, status: 'APPROVED' },
-      select: { userId: true },
+      select: { userId: true, currentLat: true, currentLng: true },
     });
 
-    const driverUserIds = nearbyDrivers.map((d) => d.userId);
+    // Sort by distance from pickup — notify nearest 5 first (like Uber/Bolt)
+    const sorted = allDrivers
+      .filter((d) => d.currentLat && d.currentLng)
+      .map((d) => ({
+        ...d,
+        dist: this.haversine(trip.pickupLat, trip.pickupLng, d.currentLat!, d.currentLng!),
+      }))
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 5);
 
-    nearbyDrivers.forEach((driver) => {
-      this.server.to(`user:${driver.userId}`).emit('server:new-trip-request', {
-        trip,
-        passenger: trip.passenger,
-      });
+    // Also include online drivers without GPS (they may still be close)
+    const noGps = allDrivers.filter((d) => !d.currentLat || !d.currentLng).slice(0, 3);
+    const targets = [...sorted, ...noGps];
+
+    const payload = { trip, passenger: trip.passenger };
+    targets.forEach((driver) => {
+      this.server.to(`user:${driver.userId}`).emit('server:new-trip-request', payload);
     });
 
-    // Push to offline drivers
+    // Broadcast to ALL passengers watching the public map — live demand feed
+    this.server.to('public:requests').emit('public:trip-requested', {
+      id: trip.id,
+      pickupLat: trip.pickupLat,
+      pickupLng: trip.pickupLng,
+      pickupAddress: trip.pickupAddress,
+      fareEstimate: trip.fareEstimate,
+      rideType: trip.rideType ?? 'ECONOMY',
+    });
+
+    const driverUserIds = targets.map((d) => d.userId);
     this.notifs.sendPushToMany(driverUserIds, {
       title: '🚖 New Trip Request',
       body: `${trip.passenger.name || 'Passenger'} needs a ride · ${trip.fareEstimate} SAR`,
       data: { tripId: trip.id, type: 'TRIP_REQUEST' },
     });
+
+    // If no driver accepts in 45 seconds, retry with broader radius
+    setTimeout(async () => {
+      const stillPending = await this.prisma.trip.findUnique({
+        where: { id: trip.id, status: 'REQUESTED' } as any,
+      });
+      if (!stillPending) return;
+      const remaining = allDrivers.filter((d) => !targets.find((t) => t.userId === d.userId));
+      remaining.forEach((driver) => {
+        this.server.to(`user:${driver.userId}`).emit('server:new-trip-request', payload);
+      });
+    }, 45000);
   }
 
   // ─── driver accepted trip → notify passenger ──────────────────────────────
@@ -215,6 +303,9 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       tripId: trip.id,
     });
 
+    // Remove from public request feed — trip is now taken
+    this.server.to('public:requests').emit('public:trip-removed', { id: trip.id });
+
     // Push to passenger in case they backgrounded the app
     this.notifs.sendPush(trip.passengerId, {
       title: '🚗 Driver Found!',
@@ -225,7 +316,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `${trip.driver?.user?.name || 'Your driver'} accepted your trip`, 'TRIP_ACCEPTED');
   }
 
-  // ─── driver completed trip → notify passenger ─────────────────────────────
+  // ─── driver completed trip → use odometer for final fare ─────────────────
   @SubscribeMessage('driver:trip-completed')
   async handleTripCompleted(
     @ConnectedSocket() client: Socket,
@@ -234,19 +325,32 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const trip = await this.prisma.trip.findUnique({ where: { id: data.tripId } });
     if (!trip) return;
 
+    // Use actual distance driven (from live odometer) for final fare
+    const odo = this.tripOdometer.get(data.tripId);
+    let finalFare = trip.finalFare ?? trip.fareEstimate;
+    if (odo && odo.totalKm > 0) {
+      const mult = this.RIDE_MULTIPLIER[odo.rideType] ?? 1.0;
+      finalFare = Math.round((this.BASE_FARE + odo.totalKm * this.PER_KM) * mult * odo.surgeMultiplier * 100) / 100;
+      // Persist to DB
+      await this.prisma.trip.update({
+        where: { id: data.tripId },
+        data: { finalFare, distanceKm: Math.round(odo.totalKm * 10) / 10 },
+      });
+    }
+    this.tripOdometer.delete(data.tripId);
+
     this.server.to(`user:${trip.passengerId}`).emit('server:trip-update', {
       status: 'COMPLETED',
-      finalFare: trip.finalFare,
+      finalFare,
       tripId: trip.id,
     });
 
     this.notifs.sendPush(trip.passengerId, {
       title: '✅ Trip Completed',
-      body: `Your fare: ${trip.finalFare ?? trip.fareEstimate} SAR. Rate your driver!`,
+      body: `Your fare: ${finalFare} SAR. Rate your driver!`,
       data: { tripId: trip.id, type: 'TRIP_COMPLETED' },
     });
-    this.notifs.saveInApp(trip.passengerId, 'Trip Completed',
-      `Fare: ${trip.finalFare ?? trip.fareEstimate} SAR`, 'TRIP_COMPLETED');
+    this.notifs.saveInApp(trip.passengerId, 'Trip Completed', `Fare: ${finalFare} SAR`, 'TRIP_COMPLETED');
   }
 
   // ─── passenger cancelled trip → notify driver ─────────────────────────────
@@ -269,6 +373,9 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data: { tripId: data.tripId, type: 'TRIP_CANCELLED' },
       });
     }
+
+    // Remove from public request feed
+    this.server.to('public:requests').emit('public:trip-removed', { id: data.tripId });
   }
 
   // ─── in-app chat between passenger and driver ─────────────────────────────

@@ -94,9 +94,4 @@ export const paymentsApi = {
   confirm: (tripId: string) => api.post('/payments/confirm', { tripId }),
 };
 
-export const promosApi = {
-  validate: (code: string) => api.get(`/promos/validate/${code}`),
-  list: () => api.get('/promos/list'),
-};
-
 export default api;

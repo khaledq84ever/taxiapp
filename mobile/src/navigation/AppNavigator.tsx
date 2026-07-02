@@ -69,8 +69,10 @@ export default function AppNavigator() {
     <NavigationContainer ref={navRef}>
       <Stack.Navigator screenOptions={headerStyle}>
         {!user ? (
-          // Loading / guest creation in progress — show nothing (splash is in App.tsx)
-          <Stack.Screen name="Phone" component={PhoneScreen} options={{ headerShown: false }} />
+          <>
+            <Stack.Screen name="Phone" component={PhoneScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="OTP" component={OtpScreen} options={{ headerShown: false }} />
+          </>
         ) : user.role === 'DRIVER' ? (
           <>
             <Stack.Screen

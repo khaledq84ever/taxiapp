@@ -108,7 +108,6 @@ export default function ActiveTripScreen({ navigation, route }: any) {
       if (status === 'ACCEPTED') {
         await tripsApi.markArrived(trip.id);
         setStatus('DRIVER_ARRIVED');
-        socketService.emit('driver:trip-accepted', { tripId: trip.id });
       } else if (status === 'DRIVER_ARRIVED') {
         await tripsApi.start(trip.id);
         setStatus('IN_PROGRESS');

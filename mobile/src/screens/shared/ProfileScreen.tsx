@@ -186,32 +186,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Promo codes section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Available Promos</Text>
-        <View style={styles.promoList}>
-          {[
-            { code: 'WELCOME50', label: '50% off — new user gift', color: '#dcfce7' },
-            { code: 'FIRST30',   label: '30% off your first ride', color: '#dbeafe' },
-            { code: 'TAXIAPP20', label: '20% off — app launch',    color: '#fef9c3' },
-          ].map((p) => (
-            <TouchableOpacity
-              key={p.code}
-              style={[styles.promoItem, { backgroundColor: p.color }]}
-              onPress={() => {
-                Share.share({ message: `Use promo code ${p.code} on TaxiApp for a discount! ${p.label}` });
-              }}
-            >
-              <View>
-                <Text style={styles.promoItemCode}>{p.code}</Text>
-                <Text style={styles.promoItemLabel}>{p.label}</Text>
-              </View>
-              <Text style={styles.promoItemCopy}>Tap to share</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
       {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
@@ -345,16 +319,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#FFD700',
   },
   referralTipText: { color: '#1a1a2e', fontSize: 12, fontWeight: '500' },
-
-  promoList: { gap: 8 },
-  promoItem: {
-    borderRadius: 12, padding: 14, flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: '#e5e5e5',
-  },
-  promoItemCode: { fontSize: 15, fontWeight: '800', color: '#1a1a2e', letterSpacing: 1 },
-  promoItemLabel: { fontSize: 12, color: '#666', marginTop: 2 },
-  promoItemCopy: { fontSize: 11, color: '#888', fontWeight: '600' },
 
   logoutBtn: {
     backgroundColor: '#FEE2E2',

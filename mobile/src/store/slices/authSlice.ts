@@ -21,9 +21,9 @@ export const initAuth = createAsyncThunk('auth/init', async () => {
   if (!token) {
     // First launch — create guest account automatically, no registration needed
     const res = await authApi.guest();
-    token = res.data.accessToken;
-    await AsyncStorage.setItem('accessToken', token);
-    return { user: res.data.user, accessToken: token, activeTrip: null };
+    const newToken: string = res.data.accessToken;
+    await AsyncStorage.setItem('accessToken', newToken);
+    return { user: res.data.user, accessToken: newToken, activeTrip: null };
   }
 
   const [profileRes, activeTrip] = await Promise.all([

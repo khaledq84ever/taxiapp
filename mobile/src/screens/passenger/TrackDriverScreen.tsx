@@ -34,6 +34,7 @@ export default function TrackDriverScreen({ navigation }: any) {
   const [eta, setEta] = useState<{ minutes: number; distanceKm: number } | null>(null);
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null);
   const [tripStatus, setTripStatus] = useState<string>(currentTrip?.status || 'ACCEPTED');
+  const [liveFare, setLiveFare] = useState<{ fare: number; distanceKm: number; moving: boolean } | null>(null);
 
   const latestMyLoc = useRef<{ lat: number; lng: number } | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -97,6 +98,11 @@ export default function TrackDriverScreen({ navigation }: any) {
         if (latestMyLoc.current) fitMap(latestMyLoc.current, dLoc);
       });
 
+      // Live fare meter — only ticks when driver is moving
+      socketService.on('server:fare-update', (data: { distanceKm: number; currentFare: number; moving: boolean }) => {
+        setLiveFare({ fare: data.currentFare, distanceKm: data.distanceKm, moving: data.moving });
+      });
+
       socketService.on('server:trip-update', (data) => {
         setTripStatus(data.status);
         dispatch(updateTripStatus({ status: data.status, finalFare: data.finalFare }));
@@ -117,6 +123,7 @@ export default function TrackDriverScreen({ navigation }: any) {
     return () => {
       sub?.remove();
       socketService.off('server:driver-location');
+      socketService.off('server:fare-update');
       socketService.off('server:trip-update');
     };
   }, []);
@@ -239,6 +246,19 @@ export default function TrackDriverScreen({ navigation }: any) {
             </View>
           )}
         </View>
+
+        {/* Live fare meter — only shows during IN_PROGRESS, pauses when driver stops */}
+        {tripStatus === 'IN_PROGRESS' && liveFare && (
+          <View style={[styles.fareMeter, !liveFare.moving && styles.fareMeterPaused]}>
+            <View style={styles.fareMeterLeft}>
+              <Text style={styles.fareMeterLabel}>
+                {liveFare.moving ? '📍 Meter running' : '⏸ Meter paused'}
+              </Text>
+              <Text style={styles.fareMeterDist}>{liveFare.distanceKm} km driven</Text>
+            </View>
+            <Text style={styles.fareMeterFare}>{liveFare.fare.toFixed(2)} SAR</Text>
+          </View>
+        )}
 
         {/* Status */}
         <Text style={styles.statusText}>{STATUS_LABELS[tripStatus] || tripStatus}</Text>
@@ -408,6 +428,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelText: { color: '#ef4444', fontWeight: 'bold', fontSize: 16 },
+
+  fareMeter: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#1a1a2e', borderRadius: 14, padding: 14, marginBottom: 10,
+  },
+  fareMeterPaused: { backgroundColor: '#f59e0b' },
+  fareMeterLeft: { flex: 1 },
+  fareMeterLabel: { color: '#FFD700', fontSize: 12, fontWeight: '700' },
+  fareMeterDist: { color: '#aaa', fontSize: 11, marginTop: 2 },
+  fareMeterFare: { color: '#fff', fontSize: 24, fontWeight: '900' },
 
   myMarker: {
     width: 38,

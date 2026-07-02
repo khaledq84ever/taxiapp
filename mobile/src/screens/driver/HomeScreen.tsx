@@ -24,6 +24,7 @@ export default function DriverHomeScreen({ navigation }: any) {
   const [earnings, setEarnings] = useState(0);
   const [tripRequest, setTripRequest] = useState<any>(null);
   const [accepting, setAccepting] = useState(false);
+  const [liveRequests, setLiveRequests] = useState<Map<string, { id: string; pickupLat: number; pickupLng: number; fareEstimate?: number }>>(new Map());
   const mapRef = useRef<MapView>(null);
   const locationSubRef = useRef<Location.LocationSubscription | null>(null);
 
@@ -98,12 +99,31 @@ export default function DriverHomeScreen({ navigation }: any) {
       socketService.on('server:new-trip-request', (data) => {
         setTripRequest(data);
       });
+
+      // Show pending requests as hotspot pins on map
+      socketService.emit('join:public-requests', {});
+      socketService.on('public:requests-snapshot', (list: any[]) => {
+        setLiveRequests(() => {
+          const m = new Map();
+          list.forEach((r) => m.set(r.id, r));
+          return m;
+        });
+      });
+      socketService.on('public:trip-requested', (r: any) => {
+        setLiveRequests((prev) => new Map(prev).set(r.id, r));
+      });
+      socketService.on('public:trip-removed', (d: { id: string }) => {
+        setLiveRequests((prev) => { const n = new Map(prev); n.delete(d.id); return n; });
+      });
     }).catch(() => {
       Alert.alert('Connection', 'Could not connect to server. Check your internet.');
     });
 
     return () => {
       socketService.off('server:new-trip-request');
+      socketService.off('public:requests-snapshot');
+      socketService.off('public:trip-requested');
+      socketService.off('public:trip-removed');
     };
   }, [isOnline]);
 
@@ -165,6 +185,20 @@ export default function DriverHomeScreen({ navigation }: any) {
               <Text style={styles.selfMarkerText}>🚗</Text>
             </View>
           </Marker>
+
+          {/* Pending request hotspots */}
+          {Array.from(liveRequests.values()).map((r) => (
+            <Marker key={r.id} coordinate={{ latitude: r.pickupLat, longitude: r.pickupLng }} anchor={{ x: 0.5, y: 1 }}>
+              <View style={styles.requestPin}>
+                <Text style={{ fontSize: 24 }}>🙋</Text>
+                {r.fareEstimate ? (
+                  <View style={styles.requestFareBubble}>
+                    <Text style={styles.requestFareText}>{r.fareEstimate} SAR</Text>
+                  </View>
+                ) : null}
+              </View>
+            </Marker>
+          ))}
         </MapView>
       )}
 
@@ -325,6 +359,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   selfMarkerText: { fontSize: 24 },
+  requestPin: { alignItems: 'center' },
+  requestFareBubble: {
+    backgroundColor: '#1a1a2e', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, marginTop: 1,
+  },
+  requestFareText: { color: '#FFD700', fontSize: 9, fontWeight: '700' },
 
   panel: {
     backgroundColor: '#fff',

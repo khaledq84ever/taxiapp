@@ -10,39 +10,16 @@ import {
   ScrollView,
 } from 'react-native';
 import MapView, { Marker, Polyline, MapPressEvent } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 import { estimateFare, requestTrip } from '../../store/slices/tripSlice';
 import { AppDispatch, RootState } from '../../store';
-import { promosApi } from '../../services/api';
 
 const RIDE_TYPES = [
-  { key: 'ECONOMY', label: 'Economy',  icon: '🚗', desc: 'Affordable everyday rides',   eta: '3–5 min' },
-  { key: 'COMFORT', label: 'Comfort',  icon: '🚙', desc: 'Newer cars, extra legroom',    eta: '4–6 min' },
-  { key: 'PREMIUM', label: 'Premium',  icon: '🚘', desc: 'Top-rated luxury vehicles',    eta: '5–8 min' },
+  { key: 'ECONOMY', label: 'Economy', icon: '🚗', desc: 'Affordable · 3–5 min' },
+  { key: 'COMFORT', label: 'Comfort', icon: '🚙', desc: 'Newer cars · 4–6 min' },
+  { key: 'PREMIUM', label: 'Premium', icon: '🚘', desc: 'Luxury · 5–8 min' },
 ] as const;
-
-const SCHEDULE_OPTIONS = [
-  { label: 'Now',          value: null },
-  { label: '+15 min',      minutesFrom: 15 },
-  { label: '+30 min',      minutesFrom: 30 },
-  { label: '+1 hour',      minutesFrom: 60 },
-  { label: 'Tomorrow 8am', minutesFrom: null, tomorrowAm: true },
-];
-
-function getScheduledAt(opt: typeof SCHEDULE_OPTIONS[number]): string | null {
-  if (!opt || !('minutesFrom' in opt)) return null;
-  if (opt.tomorrowAm) {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    d.setHours(8, 0, 0, 0);
-    return d.toISOString();
-  }
-  if (opt.minutesFrom) {
-    const d = new Date(Date.now() + opt.minutesFrom * 60 * 1000);
-    return d.toISOString();
-  }
-  return null;
-}
 
 type Step = 'map' | 'choose';
 
@@ -55,24 +32,39 @@ export default function BookRideScreen({ navigation, route }: any) {
   const [step, setStep] = useState<Step>('map');
   const [dropoff, setDropoff] = useState<{ latitude: number; longitude: number } | null>(null);
   const [dropoffLabel, setDropoffLabel] = useState('');
+  const [pickupLabel, setPickupLabel] = useState('Current Location');
   const [selectedType, setSelectedType] = useState<'ECONOMY' | 'COMFORT' | 'PREMIUM'>('ECONOMY');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD'>('CASH');
   const [estimating, setEstimating] = useState(false);
 
-  const [promoInput, setPromoInput] = useState('');
-  const [promoApplied, setPromoApplied] = useState<{ code: string; discountPct: number; label: string } | null>(null);
-  const [promoLoading, setPromoLoading] = useState(false);
+  // Resolve pickup address once on mount
+  React.useEffect(() => {
+    Location.reverseGeocodeAsync({ latitude: location.latitude, longitude: location.longitude })
+      .then(([place]) => {
+        if (place) {
+          const parts = [place.name, place.street, place.district, place.city].filter(Boolean);
+          if (parts.length > 0) setPickupLabel(parts.slice(0, 2).join(', '));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-  const [scheduleIdx, setScheduleIdx] = useState(0); // 0 = Now
-
-  const handleMapPress = (e: MapPressEvent) => {
+  const handleMapPress = async (e: MapPressEvent) => {
     const coord = e.nativeEvent.coordinate;
     setDropoff(coord);
-    setDropoffLabel(`${coord.latitude.toFixed(5)}, ${coord.longitude.toFixed(5)}`);
+    setDropoffLabel(`${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)}`);
     mapRef.current?.fitToCoordinates(
       [{ latitude: location.latitude, longitude: location.longitude }, coord],
       { edgePadding: { top: 80, right: 60, bottom: 340, left: 60 }, animated: true },
     );
+    // Reverse geocode to get readable address
+    try {
+      const [place] = await Location.reverseGeocodeAsync(coord);
+      if (place) {
+        const parts = [place.name, place.street, place.district, place.city].filter(Boolean);
+        if (parts.length > 0) setDropoffLabel(parts.join(', '));
+      }
+    } catch {}
   };
 
   const handleEstimate = async () => {
@@ -91,35 +83,16 @@ export default function BookRideScreen({ navigation, route }: any) {
     }
   };
 
-  const handleApplyPromo = async () => {
-    const code = promoInput.trim().toUpperCase();
-    if (!code) return;
-    setPromoLoading(true);
-    try {
-      const res = await promosApi.validate(code);
-      setPromoApplied(res.data);
-      setPromoInput('');
-    } catch (e: any) {
-      Alert.alert('Invalid Code', e.response?.data?.message || 'Promo code not found');
-    } finally {
-      setPromoLoading(false);
-    }
-  };
-
   const handleBook = async () => {
     if (!dropoff) return;
-    const scheduleOpt = SCHEDULE_OPTIONS[scheduleIdx];
-    const scheduledAt = getScheduledAt(scheduleOpt as any);
     try {
       await dispatch(requestTrip({
-        pickupAddress: 'Current Location',
+        pickupAddress: pickupLabel,
         pickupLat: location.latitude, pickupLng: location.longitude,
         dropoffAddress: dropoffLabel,
         dropoffLat: dropoff.latitude, dropoffLng: dropoff.longitude,
         paymentMethod,
         rideType: selectedType,
-        promoCode: promoApplied?.code,
-        scheduledAt: scheduledAt ?? undefined,
       })).unwrap();
       navigation.navigate('FindingDriver');
     } catch (e: any) {
@@ -130,9 +103,7 @@ export default function BookRideScreen({ navigation, route }: any) {
   const surge = fareEstimate?.surgeActive;
   const surgeMultiplier = fareEstimate?.surgeMultiplier ?? 1;
   const selectedOption = fareEstimate?.options?.find((o: any) => o.type === selectedType);
-  const baseFare = selectedOption?.fare ?? fareEstimate?.estimatedFare ?? 0;
-  const discountAmt = promoApplied ? Math.round(baseFare * (promoApplied.discountPct / 100) * 100) / 100 : 0;
-  const finalFare = Math.max(0, baseFare - discountAmt);
+  const fare = selectedOption?.fare ?? fareEstimate?.estimatedFare ?? 0;
 
   return (
     <View style={styles.container}>
@@ -150,7 +121,7 @@ export default function BookRideScreen({ navigation, route }: any) {
         {dropoff && (
           <>
             <Marker coordinate={dropoff} anchor={{ x: 0.5, y: 1 }}>
-              <View style={styles.dropoffPin}><Text style={styles.dropoffPinText}>📍</Text></View>
+              <Text style={styles.dropoffPinText}>📍</Text>
             </Marker>
             <Polyline
               coordinates={[{ latitude: location.latitude, longitude: location.longitude }, dropoff]}
@@ -172,12 +143,12 @@ export default function BookRideScreen({ navigation, route }: any) {
             <View style={styles.dotGreen} />
             <View style={styles.locationTexts}>
               <Text style={styles.locationLabel}>Pickup</Text>
-              <Text style={styles.locationValue}>Current Location</Text>
+              <Text style={styles.locationValue}>{pickupLabel}</Text>
             </View>
           </View>
           <View style={styles.dashedLine} />
 
-          <TouchableOpacity style={styles.locationRow} activeOpacity={0.8}>
+          <View style={styles.locationRow}>
             <View style={styles.dotBlack} />
             <View style={styles.locationTexts}>
               <Text style={styles.locationLabel}>Destination</Text>
@@ -190,12 +161,12 @@ export default function BookRideScreen({ navigation, route }: any) {
                 <Text style={styles.clearX}>✕</Text>
               </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
 
           {dropoff && (
             <TextInput
               style={styles.labelInput}
-              placeholder="Add a label for this place (optional)"
+              placeholder="Add a label (optional)"
               placeholderTextColor="#bbb"
               value={dropoffLabel}
               onChangeText={setDropoffLabel}
@@ -214,28 +185,26 @@ export default function BookRideScreen({ navigation, route }: any) {
         </View>
       )}
 
-      {/* Step 2: choose ride + promo + schedule */}
+      {/* Step 2: choose ride type + book */}
       {step === 'choose' && fareEstimate && (
         <ScrollView style={styles.sheet} contentContainerStyle={styles.chooseContent} keyboardShouldPersistTaps="handled">
           <View style={styles.handle} />
 
-          {/* Surge banner */}
           {surge && (
             <View style={styles.surgeBanner}>
               <Text style={styles.surgeIcon}>⚡</Text>
               <View>
-                <Text style={styles.surgeTitle}>Surge Pricing Active</Text>
-                <Text style={styles.surgeDesc}>High demand · {surgeMultiplier.toFixed(1)}x multiplier</Text>
+                <Text style={styles.surgeTitle}>High demand · {surgeMultiplier.toFixed(1)}x</Text>
+                <Text style={styles.surgeDesc}>Prices slightly higher right now</Text>
               </View>
             </View>
           )}
 
-          {/* Trip info */}
           <View style={styles.tripInfo}>
-            <Text style={styles.tripDist}>{fareEstimate.distanceKm} km route</Text>
+            <Text style={styles.tripDist}>{fareEstimate.distanceKm} km</Text>
             <View style={styles.tripRoute}>
               <View style={styles.dotGreenSm} />
-              <Text style={styles.tripRouteText} numberOfLines={1}>Current Location</Text>
+              <Text style={styles.tripRouteText} numberOfLines={1}>{pickupLabel}</Text>
             </View>
             <View style={styles.tripRoute}>
               <View style={styles.dotBlackSm} />
@@ -243,11 +212,10 @@ export default function BookRideScreen({ navigation, route }: any) {
             </View>
           </View>
 
-          {/* Ride type cards */}
-          <Text style={styles.sectionLabel}>Choose your ride</Text>
+          <Text style={styles.sectionLabel}>Choose ride</Text>
           {RIDE_TYPES.map((rt) => {
-            const option = fareEstimate.options?.find((o: any) => o.type === rt.key);
-            const fare = option?.fare ?? fareEstimate.estimatedFare;
+            const opt = fareEstimate.options?.find((o: any) => o.type === rt.key);
+            const rtFare = opt?.fare ?? fareEstimate.estimatedFare;
             const active = selectedType === rt.key;
             return (
               <TouchableOpacity
@@ -258,65 +226,16 @@ export default function BookRideScreen({ navigation, route }: any) {
                 <Text style={styles.rideIcon}>{rt.icon}</Text>
                 <View style={styles.rideInfo}>
                   <Text style={[styles.rideName, active && styles.rideNameActive]}>{rt.label}</Text>
-                  <Text style={styles.rideDesc}>{rt.desc} · {rt.eta}</Text>
+                  <Text style={styles.rideDesc}>{rt.desc}</Text>
                 </View>
                 <View style={styles.ridePriceCol}>
-                  <Text style={[styles.ridePrice, active && styles.ridePriceActive]}>{fare} SAR</Text>
-                  {active && <View style={styles.selectedCheck}><Text style={styles.selectedCheckText}>✓</Text></View>}
+                  <Text style={[styles.ridePrice, active && styles.ridePriceActive]}>{rtFare} SAR</Text>
+                  {active && <View style={styles.selectedCheck}><Text style={styles.checkText}>✓</Text></View>}
                 </View>
               </TouchableOpacity>
             );
           })}
 
-          {/* Schedule */}
-          <Text style={styles.sectionLabel}>When?</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scheduleRow} contentContainerStyle={{ gap: 8 }}>
-            {SCHEDULE_OPTIONS.map((opt, i) => (
-              <TouchableOpacity
-                key={opt.label}
-                style={[styles.scheduleBtn, scheduleIdx === i && styles.scheduleBtnActive]}
-                onPress={() => setScheduleIdx(i)}
-              >
-                <Text style={[styles.scheduleBtnText, scheduleIdx === i && styles.scheduleBtnTextActive]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Promo code */}
-          <Text style={styles.sectionLabel}>Promo code</Text>
-          {promoApplied ? (
-            <View style={styles.promoApplied}>
-              <Text style={styles.promoAppliedIcon}>🎉</Text>
-              <View style={styles.promoAppliedInfo}>
-                <Text style={styles.promoAppliedCode}>{promoApplied.code} — {promoApplied.discountPct}% OFF</Text>
-                <Text style={styles.promoAppliedLabel}>{promoApplied.label}</Text>
-                <Text style={styles.promoAppliedSave}>You save {discountAmt.toFixed(2)} SAR</Text>
-              </View>
-              <TouchableOpacity onPress={() => setPromoApplied(null)}>
-                <Text style={styles.promoRemove}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.promoRow}>
-              <TextInput
-                style={styles.promoInput}
-                placeholder="Enter promo code (e.g. WELCOME50)"
-                placeholderTextColor="#bbb"
-                value={promoInput}
-                onChangeText={setPromoInput}
-                autoCapitalize="characters"
-              />
-              <TouchableOpacity style={styles.promoBtn} onPress={handleApplyPromo} disabled={promoLoading || !promoInput.trim()}>
-                {promoLoading
-                  ? <ActivityIndicator color="#1a1a2e" size="small" />
-                  : <Text style={styles.promoBtnText}>Apply</Text>}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Payment method */}
           <Text style={styles.sectionLabel}>Payment</Text>
           <View style={styles.payRow}>
             {(['CASH', 'CARD'] as const).map((m) => (
@@ -333,41 +252,17 @@ export default function BookRideScreen({ navigation, route }: any) {
             ))}
           </View>
 
-          {/* Fare summary */}
-          {promoApplied && (
-            <View style={styles.fareSummary}>
-              <View style={styles.fareLine}>
-                <Text style={styles.fareLineLbl}>Subtotal</Text>
-                <Text style={styles.fareLineVal}>{baseFare} SAR</Text>
-              </View>
-              <View style={styles.fareLine}>
-                <Text style={[styles.fareLineLbl, { color: '#16a34a' }]}>Promo ({promoApplied.discountPct}% off)</Text>
-                <Text style={[styles.fareLineVal, { color: '#16a34a' }]}>−{discountAmt.toFixed(2)} SAR</Text>
-              </View>
-              <View style={[styles.fareLine, styles.fareLineTotal]}>
-                <Text style={styles.fareLineTotalLbl}>Total</Text>
-                <Text style={styles.fareLineTotalVal}>{finalFare.toFixed(2)} SAR</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Book */}
           <View style={styles.bookRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('map')}>
-              <Text style={styles.backBtnText}>← Change</Text>
+              <Text style={styles.backBtnText}>← Back</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.bookBtn} onPress={handleBook} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color="#1a1a2e" />
               ) : (
                 <View style={{ alignItems: 'center' }}>
-                  <Text style={styles.bookBtnText}>
-                    Book {RIDE_TYPES.find(r => r.key === selectedType)?.label}
-                  </Text>
-                  <Text style={styles.bookBtnSub}>
-                    {promoApplied ? `${finalFare.toFixed(2)}` : baseFare} SAR
-                    {scheduleIdx > 0 ? ` · ${SCHEDULE_OPTIONS[scheduleIdx].label}` : ''}
-                  </Text>
+                  <Text style={styles.bookBtnText}>Book {RIDE_TYPES.find(r => r.key === selectedType)?.label}</Text>
+                  <Text style={styles.bookBtnSub}>{fare} SAR</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -377,7 +272,7 @@ export default function BookRideScreen({ navigation, route }: any) {
 
       {step === 'map' && !dropoff && (
         <View style={styles.mapHint}>
-          <Text style={styles.mapHintText}>👆 Tap anywhere on the map</Text>
+          <Text style={styles.mapHintText}>👆 Tap map to set destination</Text>
         </View>
       )}
     </View>
@@ -394,7 +289,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   pickupInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1a1a2e' },
-  dropoffPin: { alignItems: 'center' },
   dropoffPinText: { fontSize: 32 },
 
   mapHint: {
@@ -469,39 +363,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD700', borderRadius: 10, width: 20, height: 20,
     justifyContent: 'center', alignItems: 'center',
   },
-  selectedCheckText: { fontSize: 11, fontWeight: '900', color: '#1a1a2e' },
-
-  scheduleRow: { marginBottom: 18 },
-  scheduleBtn: {
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
-    borderWidth: 1.5, borderColor: '#e5e5e5', backgroundColor: '#f8f8f8',
-  },
-  scheduleBtnActive: { borderColor: '#1a1a2e', backgroundColor: '#1a1a2e' },
-  scheduleBtnText: { color: '#666', fontWeight: '600', fontSize: 13 },
-  scheduleBtnTextActive: { color: '#FFD700' },
-
-  promoRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
-  promoInput: {
-    flex: 1, borderWidth: 1.5, borderColor: '#e5e5e5', borderRadius: 14,
-    padding: 13, fontSize: 14, color: '#1a1a2e', backgroundColor: '#f9f9f9',
-    letterSpacing: 1,
-  },
-  promoBtn: {
-    backgroundColor: '#1a1a2e', borderRadius: 14, paddingHorizontal: 18, paddingVertical: 13,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  promoBtnText: { color: '#FFD700', fontWeight: '700', fontSize: 14 },
-  promoApplied: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#dcfce7', borderRadius: 14, padding: 14, marginBottom: 18,
-    borderWidth: 1, borderColor: '#86efac',
-  },
-  promoAppliedIcon: { fontSize: 24 },
-  promoAppliedInfo: { flex: 1 },
-  promoAppliedCode: { fontSize: 14, fontWeight: '800', color: '#166534' },
-  promoAppliedLabel: { fontSize: 12, color: '#15803d', marginTop: 1 },
-  promoAppliedSave: { fontSize: 12, color: '#166534', fontWeight: '700', marginTop: 3 },
-  promoRemove: { color: '#ccc', fontSize: 18, padding: 4 },
+  checkText: { fontSize: 11, fontWeight: '900', color: '#1a1a2e' },
 
   payRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
   payBtn: {
@@ -512,17 +374,6 @@ const styles = StyleSheet.create({
   payIcon: { fontSize: 20 },
   payBtnText: { color: '#999', fontWeight: '600', fontSize: 15 },
   payBtnTextActive: { color: '#1a1a2e' },
-
-  fareSummary: {
-    backgroundColor: '#f8f8f8', borderRadius: 14, padding: 14, marginBottom: 18,
-    borderWidth: 1, borderColor: '#e5e5e5',
-  },
-  fareLine: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  fareLineLbl: { color: '#666', fontSize: 14 },
-  fareLineVal: { color: '#1a1a2e', fontSize: 14, fontWeight: '600' },
-  fareLineTotal: { borderTopWidth: 1, borderTopColor: '#e5e5e5', paddingTop: 8, marginTop: 4, marginBottom: 0 },
-  fareLineTotalLbl: { color: '#1a1a2e', fontSize: 16, fontWeight: '700' },
-  fareLineTotalVal: { color: '#1a1a2e', fontSize: 18, fontWeight: '800' },
 
   bookRow: { flexDirection: 'row', gap: 10 },
   backBtn: {

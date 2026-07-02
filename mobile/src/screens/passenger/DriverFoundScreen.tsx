@@ -10,8 +10,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 
 export default function DriverFoundScreen({ navigation }: any) {
-  const { currentTrip, driverInfo } = useSelector((s: RootState) => s.trip);
-  const driver = driverInfo || {};
+  const { currentTrip } = useSelector((s: RootState) => s.trip);
+  const driver = currentTrip?.driver || {};
   const user = driver.user || {};
   const [eta, setEta] = useState<number | null>(null);
 

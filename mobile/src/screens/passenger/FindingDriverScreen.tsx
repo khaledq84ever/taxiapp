@@ -70,7 +70,6 @@ export default function FindingDriverScreen({ navigation }: any) {
   };
 
   const trip = currentTrip;
-  const hasDiscount = trip?.discount && trip.discount > 0;
   const isScheduled = !!trip?.scheduledAt;
 
   return (
@@ -87,12 +86,6 @@ export default function FindingDriverScreen({ navigation }: any) {
           ? `Your ride is booked for ${new Date(trip!.scheduledAt!).toLocaleString('en-SA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
           : "We're connecting you with a nearby driver"}
       </Text>
-
-      {hasDiscount && (
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>🎉 Promo applied! You saved {trip?.discount?.toFixed(2)} SAR</Text>
-        </View>
-      )}
 
       <View style={styles.fareCard}>
         <Text style={styles.fareLbl}>Estimated fare</Text>
@@ -136,12 +129,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a2e', marginBottom: 8, textAlign: 'center' },
   subtitle: { color: '#666', fontSize: 15, textAlign: 'center', marginBottom: 14, paddingHorizontal: 20 },
   hint: { color: '#aaa', fontSize: 13, textAlign: 'center', marginBottom: 24 },
-
-  discountBadge: {
-    backgroundColor: '#dcfce7', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10,
-    marginBottom: 14, borderWidth: 1, borderColor: '#86efac',
-  },
-  discountText: { color: '#166534', fontWeight: '700', fontSize: 14, textAlign: 'center' },
 
   fareCard: {
     backgroundColor: '#f8f8f8', borderRadius: 16, paddingHorizontal: 32, paddingVertical: 18,
