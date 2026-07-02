@@ -374,6 +374,8 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const trip = await this.prisma.trip.findUnique({ where: { id: data.tripId } });
     if (!trip || !trip.driverId) return;
+    // Only the passenger who owns this trip may trigger its cancellation relay
+    if (trip.passengerId !== client.data.userId) return;
 
     const driver = await this.prisma.driver.findUnique({ where: { id: trip.driverId } });
     if (driver) {
@@ -404,8 +406,13 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     if (!trip) return;
 
-    const targetUserId =
-      senderId === trip.passengerId ? trip.driver?.userId : trip.passengerId;
+    // Sender must be a participant of this trip — otherwise a stranger could
+    // inject messages that appear to come from the real driver/passenger
+    const isPassenger = senderId === trip.passengerId;
+    const isDriver = !!trip.driver && senderId === trip.driver.userId;
+    if (!isPassenger && !isDriver) return;
+
+    const targetUserId = isPassenger ? trip.driver?.userId : trip.passengerId;
     if (!targetUserId) return;
 
     const payload = {

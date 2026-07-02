@@ -135,6 +135,19 @@ export class TripsService {
       },
     });
     if (!trip) throw new NotFoundException('Trip not found');
+
+    // Access control: the trip's passenger, its assigned driver, or — while the
+    // trip is still open (REQUESTED) — any driver, so they can view it before
+    // accepting from the live map. Anyone else must not see the PII it carries.
+    const isPassenger = trip.passengerId === userId;
+    const isAssignedDriver = !!trip.driver && trip.driver.userId === userId;
+    let allowed = isPassenger || isAssignedDriver;
+    if (!allowed && trip.status === 'REQUESTED') {
+      const driver = await this.prisma.driver.findUnique({ where: { userId } });
+      allowed = !!driver;
+    }
+    if (!allowed) throw new ForbiddenException('You do not have access to this trip');
+
     return trip;
   }
 
@@ -195,8 +208,19 @@ export class TripsService {
   }
 
   async cancelTrip(tripId: string, userId: string, reason?: string) {
-    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      include: { driver: { select: { userId: true } } },
+    });
     if (!trip) throw new NotFoundException('Trip not found');
+
+    // Only the passenger who booked it or the driver assigned to it may cancel
+    const isPassenger = trip.passengerId === userId;
+    const isAssignedDriver = !!trip.driver && trip.driver.userId === userId;
+    if (!isPassenger && !isAssignedDriver) {
+      throw new ForbiddenException('You do not have access to this trip');
+    }
+
     if (!['REQUESTED', 'ACCEPTED'].includes(trip.status)) {
       throw new BadRequestException('Trip cannot be cancelled at this stage');
     }
