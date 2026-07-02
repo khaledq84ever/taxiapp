@@ -142,13 +142,14 @@ export class TripsService {
     const driver = await this.prisma.driver.findUnique({ where: { userId } });
     if (!driver) throw new ForbiddenException('Not a driver');
 
-    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
-    if (!trip || trip.status !== 'REQUESTED') throw new BadRequestException('Trip not available');
-
-    return this.prisma.trip.update({
-      where: { id: tripId },
+    // Atomic: only one driver can flip REQUESTED → ACCEPTED, even on simultaneous taps
+    const updated = await this.prisma.trip.updateMany({
+      where: { id: tripId, status: 'REQUESTED' },
       data: { driverId: driver.id, status: 'ACCEPTED', acceptedAt: new Date() },
     });
+    if (updated.count === 0) throw new BadRequestException('Trip not available');
+
+    return this.prisma.trip.findUnique({ where: { id: tripId } });
   }
 
   async markArrived(tripId: string, userId: string) {

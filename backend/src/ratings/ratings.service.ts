@@ -1,9 +1,18 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { IsString, IsInt, IsOptional, Min, Max } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 
 export class CreateRatingDto {
+  @IsString()
   tripId: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(5)
   score: number;
+
+  @IsOptional()
+  @IsString()
   comment?: string;
 }
 

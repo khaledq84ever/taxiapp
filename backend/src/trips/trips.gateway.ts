@@ -22,7 +22,9 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private passengerLocations = new Map<string, { lat: number; lng: number }>();
   private lastDbSave = new Map<string, number>();
   // Live odometer: tracks actual km driven per trip (only counts when driver is moving)
-  private tripOdometer = new Map<string, { lastLat: number; lastLng: number; totalKm: number; rideType: string; surgeMultiplier: number }>();
+  private tripOdometer = new Map<string, { lastLat: number; lastLng: number; lastTs: number; totalKm: number; rideType: string; surgeMultiplier: number }>();
+  // Movement faster than this between GPS pings is a glitch, not driving
+  private readonly MAX_SPEED_KMH = 150;
 
   private readonly BASE_FARE = 5;
   private readonly PER_KM = 2.5;
@@ -102,7 +104,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!odo) {
         // First IN_PROGRESS update — start tracking from current position
         this.tripOdometer.set(activeTrip.id, {
-          lastLat: data.lat, lastLng: data.lng, totalKm: 0,
+          lastLat: data.lat, lastLng: data.lng, lastTs: Date.now(), totalKm: 0,
           rideType: activeTrip.rideType ?? 'ECONOMY',
           surgeMultiplier: activeTrip.fareEstimate / Math.max(0.01,
             (this.BASE_FARE + (activeTrip.distanceKm ?? 1) * this.PER_KM) *
@@ -110,12 +112,19 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       } else {
         const moved = this.haversine(odo.lastLat, odo.lastLng, data.lat, data.lng);
+        const nowTs = Date.now();
+        const hours = Math.max((nowTs - odo.lastTs) / 3600000, 1 / 3600000);
+        const speedKmh = moved / hours;
+        // GPS glitch: impossible speed — resync position without charging the passenger
+        if (speedKmh > this.MAX_SPEED_KMH) {
+          this.tripOdometer.set(activeTrip.id, { ...odo, lastLat: data.lat, lastLng: data.lng, lastTs: nowTs });
+        } else
         // Only add to odometer if driver moved more than 10 m — ignores stops
         if (moved >= 0.01) {
           const totalKm = odo.totalKm + moved;
           const mult = this.RIDE_MULTIPLIER[odo.rideType] ?? 1.0;
           const liveFare = Math.round((this.BASE_FARE + totalKm * this.PER_KM) * mult * odo.surgeMultiplier * 100) / 100;
-          this.tripOdometer.set(activeTrip.id, { ...odo, lastLat: data.lat, lastLng: data.lng, totalKm });
+          this.tripOdometer.set(activeTrip.id, { ...odo, lastLat: data.lat, lastLng: data.lng, lastTs: nowTs, totalKm });
 
           // Push live fare to passenger — meter only ticks when moving
           this.server.to(`user:${activeTrip.passengerId}`).emit('server:fare-update', {
@@ -125,7 +134,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           });
         } else {
           // Driver stopped — update position without counting distance, notify passenger meter is paused
-          this.tripOdometer.set(activeTrip.id, { ...odo, lastLat: data.lat, lastLng: data.lng });
+          this.tripOdometer.set(activeTrip.id, { ...odo, lastLat: data.lat, lastLng: data.lng, lastTs: nowTs });
           this.server.to(`user:${activeTrip.passengerId}`).emit('server:fare-update', {
             distanceKm: Math.round(odo.totalKm * 10) / 10,
             currentFare: Math.round((this.BASE_FARE + odo.totalKm * this.PER_KM) * (this.RIDE_MULTIPLIER[odo.rideType] ?? 1) * odo.surgeMultiplier * 100) / 100,
