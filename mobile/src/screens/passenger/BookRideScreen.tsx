@@ -24,7 +24,8 @@ const RIDE_TYPES = [
 type Step = 'map' | 'choose';
 
 export default function BookRideScreen({ navigation, route }: any) {
-  const { location } = route.params as { location: { latitude: number; longitude: number } };
+  const { location, mode } = route.params as { location: { latitude: number; longitude: number }; mode?: 'ride' | 'deliver' };
+  const isDelivery = mode === 'deliver';
   const dispatch = useDispatch<AppDispatch>();
   const { fareEstimate, loading } = useSelector((s: RootState) => s.trip);
 
@@ -36,6 +37,9 @@ export default function BookRideScreen({ navigation, route }: any) {
   const [selectedType, setSelectedType] = useState<'ECONOMY' | 'COMFORT' | 'PREMIUM'>('ECONOMY');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD'>('CASH');
   const [estimating, setEstimating] = useState(false);
+  const [packageDescription, setPackageDescription] = useState('');
+  const [receiverName, setReceiverName] = useState('');
+  const [receiverPhone, setReceiverPhone] = useState('');
 
   // Resolve pickup address once on mount
   React.useEffect(() => {
@@ -85,6 +89,9 @@ export default function BookRideScreen({ navigation, route }: any) {
 
   const handleBook = async () => {
     if (!dropoff) return;
+    if (isDelivery && !packageDescription.trim()) {
+      return Alert.alert('Package Info', 'Please describe what you are sending');
+    }
     try {
       await dispatch(requestTrip({
         pickupAddress: pickupLabel,
@@ -92,7 +99,13 @@ export default function BookRideScreen({ navigation, route }: any) {
         dropoffAddress: dropoffLabel,
         dropoffLat: dropoff.latitude, dropoffLng: dropoff.longitude,
         paymentMethod,
-        rideType: selectedType,
+        rideType: isDelivery ? 'ECONOMY' : selectedType,
+        ...(isDelivery && {
+          tripType: 'DELIVERY',
+          packageDescription: packageDescription.trim(),
+          receiverName: receiverName.trim() || undefined,
+          receiverPhone: receiverPhone.trim() || undefined,
+        }),
       })).unwrap();
       navigation.navigate('FindingDriver');
     } catch (e: any) {
@@ -137,7 +150,7 @@ export default function BookRideScreen({ navigation, route }: any) {
       {step === 'map' && (
         <View style={styles.sheet}>
           <View style={styles.handle} />
-          <Text style={styles.sheetTitle}>Where to?</Text>
+          <Text style={styles.sheetTitle}>{isDelivery ? '📦 Where to deliver?' : 'Where to?'}</Text>
 
           <View style={styles.locationRow}>
             <View style={styles.dotGreen} />
@@ -180,7 +193,7 @@ export default function BookRideScreen({ navigation, route }: any) {
           >
             {estimating
               ? <ActivityIndicator color="#1a1a2e" />
-              : <Text style={styles.primaryBtnText}>See Ride Options →</Text>}
+              : <Text style={styles.primaryBtnText}>{isDelivery ? 'See Delivery Price →' : 'See Ride Options →'}</Text>}
           </TouchableOpacity>
         </View>
       )}
@@ -212,6 +225,48 @@ export default function BookRideScreen({ navigation, route }: any) {
             </View>
           </View>
 
+          {isDelivery ? (
+            <>
+              <Text style={styles.sectionLabel}>Delivery</Text>
+              <View style={[styles.rideCard, styles.rideCardActive]}>
+                <Text style={styles.rideIcon}>📦</Text>
+                <View style={styles.rideInfo}>
+                  <Text style={[styles.rideName, styles.rideNameActive]}>Package Delivery</Text>
+                  <Text style={styles.rideDesc}>Driver picks up &amp; delivers · 3–5 min</Text>
+                </View>
+                <View style={styles.ridePriceCol}>
+                  <Text style={[styles.ridePrice, styles.ridePriceActive]}>
+                    {fareEstimate.options?.find((o: any) => o.type === 'ECONOMY')?.fare ?? fareEstimate.estimatedFare} SAR
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.sectionLabel}>Package details</Text>
+              <TextInput
+                style={styles.packageInput}
+                placeholder="What are you sending? (e.g. documents, food) *"
+                placeholderTextColor="#bbb"
+                value={packageDescription}
+                onChangeText={setPackageDescription}
+              />
+              <TextInput
+                style={styles.packageInput}
+                placeholder="Receiver name (optional)"
+                placeholderTextColor="#bbb"
+                value={receiverName}
+                onChangeText={setReceiverName}
+              />
+              <TextInput
+                style={[styles.packageInput, { marginBottom: 18 }]}
+                placeholder="Receiver phone (optional)"
+                placeholderTextColor="#bbb"
+                keyboardType="phone-pad"
+                value={receiverPhone}
+                onChangeText={setReceiverPhone}
+              />
+            </>
+          ) : (
+            <>
           <Text style={styles.sectionLabel}>Choose ride</Text>
           {RIDE_TYPES.map((rt) => {
             const opt = fareEstimate.options?.find((o: any) => o.type === rt.key);
@@ -235,6 +290,8 @@ export default function BookRideScreen({ navigation, route }: any) {
               </TouchableOpacity>
             );
           })}
+            </>
+          )}
 
           <Text style={styles.sectionLabel}>Payment</Text>
           <View style={styles.payRow}>
@@ -261,8 +318,14 @@ export default function BookRideScreen({ navigation, route }: any) {
                 <ActivityIndicator color="#1a1a2e" />
               ) : (
                 <View style={{ alignItems: 'center' }}>
-                  <Text style={styles.bookBtnText}>Book {RIDE_TYPES.find(r => r.key === selectedType)?.label}</Text>
-                  <Text style={styles.bookBtnSub}>{fare} SAR</Text>
+                  <Text style={styles.bookBtnText}>
+                    {isDelivery ? '📦 Send Package' : `Book ${RIDE_TYPES.find(r => r.key === selectedType)?.label}`}
+                  </Text>
+                  <Text style={styles.bookBtnSub}>
+                    {isDelivery
+                      ? (fareEstimate.options?.find((o: any) => o.type === 'ECONOMY')?.fare ?? fareEstimate.estimatedFare)
+                      : fare} SAR
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -272,7 +335,9 @@ export default function BookRideScreen({ navigation, route }: any) {
 
       {step === 'map' && !dropoff && (
         <View style={styles.mapHint}>
-          <Text style={styles.mapHintText}>👆 Tap map to set destination</Text>
+          <Text style={styles.mapHintText}>
+            {isDelivery ? '👆 Tap map to set delivery point' : '👆 Tap map to set destination'}
+          </Text>
         </View>
       )}
     </View>
@@ -321,6 +386,10 @@ const styles = StyleSheet.create({
   labelInput: {
     marginHorizontal: 20, marginTop: 8, borderWidth: 1.5, borderColor: '#e5e5e5',
     borderRadius: 12, padding: 12, fontSize: 14, color: '#1a1a2e', backgroundColor: '#f9f9f9',
+  },
+  packageInput: {
+    borderWidth: 1.5, borderColor: '#e5e5e5', borderRadius: 12, padding: 13,
+    fontSize: 14, color: '#1a1a2e', backgroundColor: '#f9f9f9', marginBottom: 10,
   },
 
   primaryBtn: {

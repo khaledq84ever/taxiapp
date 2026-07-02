@@ -39,6 +39,11 @@ enum RideType {
   PREMIUM
 }
 
+enum TripType {
+  RIDE
+  DELIVERY
+}
+
 enum PaymentStatus {
   PENDING
   PAID
@@ -137,6 +142,10 @@ model Trip {
   dropoffLng     Float
   status         TripStatus    @default(REQUESTED)
   rideType       RideType      @default(ECONOMY)
+  tripType       TripType      @default(RIDE)
+  packageDescription String?
+  receiverName   String?
+  receiverPhone  String?
   fareEstimate   Float
   finalFare      Float?
   discount       Float         @default(0)

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Linking,
+  Platform,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -147,6 +148,17 @@ export default function ActiveTripScreen({ navigation, route }: any) {
     ]);
   };
 
+  // Open Google Maps turn-by-turn to pickup (before start) or destination (during trip)
+  const handleNavigate = () => {
+    const { latitude, longitude } = targetCoord;
+    const nativeUrl = Platform.OS === 'android'
+      ? `google.navigation:q=${latitude},${longitude}`
+      : `comgooglemaps://?daddr=${latitude},${longitude}&directionsmode=driving`;
+    Linking.openURL(nativeUrl).catch(() =>
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`),
+    );
+  };
+
   const handleChat = () => {
     navigation.navigate('Chat', {
       tripId: trip.id,
@@ -232,6 +244,27 @@ export default function ActiveTripScreen({ navigation, route }: any) {
           </View>
         )}
 
+        {trip.tripType === 'DELIVERY' && (
+          <View style={styles.packageCard}>
+            <Text style={styles.packageTitle}>📦 PACKAGE DELIVERY</Text>
+            <Text style={styles.packageDesc}>{trip.packageDescription || 'Package'}</Text>
+            {trip.receiverName ? (
+              <Text style={styles.packageReceiver}>
+                Deliver to: {trip.receiverName}
+                {trip.receiverPhone ? ` · ${trip.receiverPhone}` : ''}
+              </Text>
+            ) : null}
+            {trip.receiverPhone ? (
+              <TouchableOpacity
+                style={styles.callReceiverBtn}
+                onPress={() => Linking.openURL(`tel:${trip.receiverPhone}`)}
+              >
+                <Text style={styles.callReceiverText}>📞 Call Receiver</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        )}
+
         <View style={styles.addressBlock}>
           <View style={styles.addressRow}>
             <Text style={styles.addrIcon}>📍</Text>
@@ -254,6 +287,13 @@ export default function ActiveTripScreen({ navigation, route }: any) {
           <Text style={styles.fareLabel}>Fare Estimate</Text>
           <Text style={styles.fareValue}>{trip.fareEstimate} SAR</Text>
         </View>
+
+        {/* Turn-by-turn navigation in Google Maps */}
+        <TouchableOpacity style={styles.navigateBtn} onPress={handleNavigate}>
+          <Text style={styles.navigateText}>
+            🧭 Navigate to {status === 'IN_PROGRESS' ? 'Destination' : 'Pickup'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Call + Chat + SOS */}
         <View style={styles.utilRow}>
@@ -361,6 +401,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionText: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 17 },
+
+  navigateBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  navigateText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+
+  packageCard: {
+    backgroundColor: '#FFF7E6',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  packageTitle: { fontSize: 11, fontWeight: '800', color: '#b45309', letterSpacing: 0.8 },
+  packageDesc: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', marginTop: 4 },
+  packageReceiver: { fontSize: 13, color: '#666', marginTop: 4 },
+  callReceiverBtn: {
+    backgroundColor: '#dcfce7',
+    borderRadius: 10,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  callReceiverText: { color: '#16a34a', fontWeight: '700', fontSize: 13 },
 
   utilRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   callBtn: {

@@ -262,7 +262,21 @@ export default function DriverHomeScreen({ navigation }: any) {
       <Modal visible={!!tripRequest} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>🚖 New Trip Request</Text>
+            <Text style={styles.modalTitle}>
+              {tripRequest?.trip?.tripType === 'DELIVERY' ? '📦 PACKAGE DELIVERY' : '🚖 New Trip Request'}
+            </Text>
+
+            {tripRequest?.trip?.tripType === 'DELIVERY' && (
+              <View style={styles.packageCard}>
+                <Text style={styles.packageDesc}>📦 {tripRequest?.trip?.packageDescription || 'Package'}</Text>
+                {tripRequest?.trip?.receiverName ? (
+                  <Text style={styles.packageReceiver}>
+                    Deliver to: {tripRequest.trip.receiverName}
+                    {tripRequest?.trip?.receiverPhone ? ` · ${tripRequest.trip.receiverPhone}` : ''}
+                  </Text>
+                ) : null}
+              </View>
+            )}
 
             <View style={styles.passengerRow}>
               <Text style={styles.passengerAvatar}>👤</Text>
@@ -312,7 +326,9 @@ export default function DriverHomeScreen({ navigation }: any) {
               </View>
               <View style={styles.fareItem}>
                 <Text style={styles.fareLabel}>Type</Text>
-                <Text style={styles.fareValue}>{tripRequest?.trip?.rideType ?? 'ECONOMY'}</Text>
+                <Text style={styles.fareValue}>
+                  {tripRequest?.trip?.tripType === 'DELIVERY' ? '📦 Delivery' : (tripRequest?.trip?.rideType ?? 'ECONOMY')}
+                </Text>
               </View>
               <View style={styles.fareItem}>
                 <Text style={styles.fareLabel}>Payment</Text>
@@ -334,7 +350,9 @@ export default function DriverHomeScreen({ navigation }: any) {
                 {accepting ? (
                   <ActivityIndicator color="#1a1a2e" />
                 ) : (
-                  <Text style={styles.acceptText}>Accept Trip</Text>
+                  <Text style={styles.acceptText}>
+                    {tripRequest?.trip?.tripType === 'DELIVERY' ? 'Accept Delivery' : 'Accept Trip'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -426,6 +444,12 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a2e', marginBottom: 16 },
+  packageCard: {
+    backgroundColor: '#FFF7E6', borderRadius: 12, padding: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: '#FFD700',
+  },
+  packageDesc: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
+  packageReceiver: { fontSize: 13, color: '#666', marginTop: 4 },
 
   passengerRow: {
     flexDirection: 'row',

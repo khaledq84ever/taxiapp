@@ -16,8 +16,9 @@ export class DriversService {
       data: { role: 'DRIVER' },
     });
 
+    // No admin panel — drivers are approved automatically on registration
     return this.prisma.driver.create({
-      data: { userId, ...dto },
+      data: { userId, ...dto, status: 'APPROVED' },
       include: { user: true },
     });
   }

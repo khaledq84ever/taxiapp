@@ -206,7 +206,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Send all currently pending requests so map is populated on join
     const pending = await this.prisma.trip.findMany({
       where: { status: 'REQUESTED' },
-      select: { id: true, pickupLat: true, pickupLng: true, pickupAddress: true, fareEstimate: true, rideType: true, createdAt: true },
+      select: { id: true, pickupLat: true, pickupLng: true, pickupAddress: true, fareEstimate: true, rideType: true, tripType: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -257,12 +257,16 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       pickupAddress: trip.pickupAddress,
       fareEstimate: trip.fareEstimate,
       rideType: trip.rideType ?? 'ECONOMY',
+      tripType: (trip as any).tripType ?? 'RIDE',
     });
 
+    const isDelivery = (trip as any).tripType === 'DELIVERY';
     const driverUserIds = targets.map((d) => d.userId);
     this.notifs.sendPushToMany(driverUserIds, {
-      title: '🚖 New Trip Request',
-      body: `${trip.passenger.name || 'Passenger'} needs a ride · ${trip.fareEstimate} SAR`,
+      title: isDelivery ? '📦 New Package Delivery' : '🚖 New Trip Request',
+      body: isDelivery
+        ? `Deliver a package · ${trip.fareEstimate} SAR`
+        : `${trip.passenger.name || 'Passenger'} needs a ride · ${trip.fareEstimate} SAR`,
       data: { tripId: trip.id, type: 'TRIP_REQUEST' },
     });
 

@@ -13,6 +13,11 @@ export const RIDE_TYPE_MULTIPLIER: Record<RideType, number> = {
   PREMIUM: 1.7,
 };
 
+export enum TripType {
+  RIDE     = 'RIDE',
+  DELIVERY = 'DELIVERY',
+}
+
 export class RequestTripDto {
   @IsString()
   pickupAddress: string;
@@ -54,6 +59,22 @@ export class RequestTripDto {
   @IsOptional()
   @IsString()
   scheduledAt?: string;
+
+  @IsOptional()
+  @IsEnum(TripType)
+  tripType?: TripType;
+
+  @IsOptional()
+  @IsString()
+  packageDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  receiverName?: string;
+
+  @IsOptional()
+  @IsString()
+  receiverPhone?: string;
 }
 
 export class EstimateFareDto {

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PromosService } from '../promos/promos.service';
-import { RequestTripDto, EstimateFareDto, RideType, RIDE_TYPE_MULTIPLIER } from './dto/request-trip.dto';
+import { RequestTripDto, EstimateFareDto, RideType, TripType, RIDE_TYPE_MULTIPLIER } from './dto/request-trip.dto';
 
 const BASE_FARE = 5;
 const PER_KM_RATE = 2.5;
@@ -46,7 +46,13 @@ export class TripsService {
   }
 
   async requestTrip(passengerId: string, dto: RequestTripDto) {
-    const estimate = this.estimateFare({ ...dto, rideType: dto.rideType });
+    // Deliveries are always priced as Economy
+    const isDelivery = dto.tripType === TripType.DELIVERY;
+    const rideType = isDelivery ? RideType.ECONOMY : (dto.rideType ?? RideType.ECONOMY);
+    if (isDelivery && !dto.packageDescription) {
+      throw new BadRequestException('Package description is required for deliveries');
+    }
+    const estimate = this.estimateFare({ ...dto, rideType });
 
     const activeTrip = await this.prisma.trip.findFirst({
       where: { passengerId, status: { in: ['REQUESTED', 'ACCEPTED', 'DRIVER_ARRIVED', 'IN_PROGRESS'] } },
@@ -73,7 +79,11 @@ export class TripsService {
         dropoffAddress: dto.dropoffAddress,
         dropoffLat: dto.dropoffLat,
         dropoffLng: dto.dropoffLng,
-        rideType: dto.rideType ?? RideType.ECONOMY,
+        rideType,
+        tripType: dto.tripType ?? TripType.RIDE,
+        packageDescription: dto.packageDescription ?? null,
+        receiverName: dto.receiverName ?? null,
+        receiverPhone: dto.receiverPhone ?? null,
         fareEstimate: finalEstimate,
         discount,
         distanceKm: estimate.distanceKm,
