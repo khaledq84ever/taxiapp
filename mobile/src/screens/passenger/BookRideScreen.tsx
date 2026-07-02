@@ -10,6 +10,8 @@ import {
   ScrollView,
 } from 'react-native';
 import MapView, { Marker, Polyline, MapPressEvent } from 'react-native-maps';
+import OsmTiles from '../../components/OsmTiles';
+import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 import { estimateFare, requestTrip } from '../../store/slices/tripSlice';
@@ -109,7 +111,8 @@ export default function BookRideScreen({ navigation, route }: any) {
       })).unwrap();
       navigation.navigate('FindingDriver');
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not book ride');
+      const msg = typeof e === 'string' ? e : e?.message || 'Could not book. Try again.';
+      Alert.alert('Booking Failed', msg);
     }
   };
 
@@ -125,9 +128,11 @@ export default function BookRideScreen({ navigation, route }: any) {
         style={styles.map}
         initialRegion={{ latitude: location.latitude, longitude: location.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 }}
         onPress={step === 'map' ? handleMapPress : undefined}
+        mapType="none"
         showsUserLocation
         showsMyLocationButton={false}
       >
+        <OsmTiles />
         <Marker coordinate={{ latitude: location.latitude, longitude: location.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
           <View style={styles.pickupDot}><View style={styles.pickupInner} /></View>
         </Marker>
@@ -145,6 +150,7 @@ export default function BookRideScreen({ navigation, route }: any) {
           </>
         )}
       </MapView>
+      <MapAttribution />
 
       {/* Step 1: pick destination */}
       {step === 'map' && (

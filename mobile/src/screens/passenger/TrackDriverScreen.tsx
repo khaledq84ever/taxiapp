@@ -9,6 +9,8 @@ import {
   Linking,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import OsmTiles from '../../components/OsmTiles';
+import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -183,7 +185,9 @@ export default function TrackDriverScreen({ navigation }: any) {
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         }}
+        mapType="none"
       >
+        <OsmTiles />
         {/* Passenger marker (me) */}
         <Marker
           coordinate={{ latitude: myLocation.lat, longitude: myLocation.lng }}
@@ -224,6 +228,7 @@ export default function TrackDriverScreen({ navigation }: any) {
           </Marker>
         )}
       </MapView>
+      <MapAttribution />
 
       {/* Bottom sheet */}
       <View style={styles.sheet}>

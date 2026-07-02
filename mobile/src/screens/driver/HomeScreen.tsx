@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import OsmTiles from '../../components/OsmTiles';
+import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { driversApi, tripsApi } from '../../services/api';
 import { useSelector } from 'react-redux';
@@ -160,6 +162,22 @@ export default function DriverHomeScreen({ navigation }: any) {
 
   const handleDeclineTrip = () => setTripRequest(null);
 
+  // Tap a red booking point on the map → open it in the accept modal
+  const handleTapRequest = async (requestId: string) => {
+    try {
+      const res = await tripsApi.getTrip(requestId);
+      const t = res.data;
+      if (t.status !== 'REQUESTED') {
+        Alert.alert('Taken', 'This booking was already taken by another driver.');
+        setLiveRequests((prev) => { const n = new Map(prev); n.delete(requestId); return n; });
+        return;
+      }
+      setTripRequest({ trip: t, passenger: t.passenger });
+    } catch {
+      Alert.alert('Error', 'Could not load this booking. Try again.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {location && (
@@ -172,7 +190,9 @@ export default function DriverHomeScreen({ navigation }: any) {
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           }}
+          mapType="none"
         >
+          <OsmTiles />
           <Marker
             coordinate={{ latitude: location.latitude, longitude: location.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
@@ -186,11 +206,18 @@ export default function DriverHomeScreen({ navigation }: any) {
             </View>
           </Marker>
 
-          {/* Pending request hotspots */}
-          {Array.from(liveRequests.values()).map((r) => (
-            <Marker key={r.id} coordinate={{ latitude: r.pickupLat, longitude: r.pickupLng }} anchor={{ x: 0.5, y: 1 }}>
+          {/* Live booking points — tap a red point to accept that booking */}
+          {Array.from(liveRequests.values()).map((r: any) => (
+            <Marker
+              key={r.id}
+              coordinate={{ latitude: r.pickupLat, longitude: r.pickupLng }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              onPress={() => handleTapRequest(r.id)}
+            >
               <View style={styles.requestPin}>
-                <Text style={{ fontSize: 24 }}>🙋</Text>
+                <View style={styles.redPoint}>
+                  <Text style={styles.redPointIcon}>{r.tripType === 'DELIVERY' ? '📦' : '🙋'}</Text>
+                </View>
                 {r.fareEstimate ? (
                   <View style={styles.requestFareBubble}>
                     <Text style={styles.requestFareText}>{r.fareEstimate} SAR</Text>
@@ -201,6 +228,7 @@ export default function DriverHomeScreen({ navigation }: any) {
           ))}
         </MapView>
       )}
+      <MapAttribution />
 
       {/* Status panel */}
       <View style={styles.panel}>
@@ -378,10 +406,17 @@ const styles = StyleSheet.create({
   },
   selfMarkerText: { fontSize: 24 },
   requestPin: { alignItems: 'center' },
-  requestFareBubble: {
-    backgroundColor: '#1a1a2e', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 2, marginTop: 1,
+  redPoint: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: '#ef4444',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2.5, borderColor: '#fff',
+    elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
   },
-  requestFareText: { color: '#FFD700', fontSize: 9, fontWeight: '700' },
+  redPointIcon: { fontSize: 16 },
+  requestFareBubble: {
+    backgroundColor: '#ef4444', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
+  },
+  requestFareText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
   panel: {
     backgroundColor: '#fff',

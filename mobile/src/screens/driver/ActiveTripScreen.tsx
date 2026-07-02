@@ -11,6 +11,8 @@ import {
   Platform,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import OsmTiles from '../../components/OsmTiles';
+import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { socketService } from '../../services/socket';
 import { tripsApi } from '../../services/api';
@@ -177,7 +179,9 @@ export default function ActiveTripScreen({ navigation, route }: any) {
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }}
+        mapType="none"
       >
+        <OsmTiles />
         {/* Driver marker — rotates with heading */}
         <Marker
           coordinate={{ latitude: myLocation.lat, longitude: myLocation.lng }}
@@ -219,6 +223,7 @@ export default function ActiveTripScreen({ navigation, route }: any) {
           </Marker>
         )}
       </MapView>
+      <MapAttribution />
 
       {/* Bottom sheet */}
       <ScrollView style={styles.sheet} contentContainerStyle={styles.sheetContent}>

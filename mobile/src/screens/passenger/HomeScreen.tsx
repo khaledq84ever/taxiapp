@@ -11,6 +11,8 @@ import {
   Linking,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import OsmTiles from '../../components/OsmTiles';
+import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -179,16 +181,17 @@ export default function PassengerHomeScreen({ navigation }: any) {
       <MapView
         ref={mapRef}
         style={styles.map}
+        mapType="none"
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass={false}
-        showsTraffic
         initialRegion={
           location
             ? { latitude: location.latitude, longitude: location.longitude, latitudeDelta: 0.08, longitudeDelta: 0.08 }
             : { latitude: 24.7136, longitude: 46.6753, latitudeDelta: 0.5, longitudeDelta: 0.5 }
         }
       >
+        <OsmTiles />
         {/* Live driver pins */}
         {Array.from(liveDrivers.values()).map((d) => (
           <Marker
@@ -211,7 +214,9 @@ export default function PassengerHomeScreen({ navigation }: any) {
             anchor={{ x: 0.5, y: 1 }}
           >
             <View style={styles.requestPin}>
-              <Text style={styles.requestPinText}>🙋</Text>
+              <View style={styles.redPoint}>
+                <Text style={styles.redPointIcon}>{(r as any).tripType === 'DELIVERY' ? '📦' : '🙋'}</Text>
+              </View>
               {r.fareEstimate ? (
                 <View style={styles.requestFareBubble}>
                   <Text style={styles.requestFareText}>{r.fareEstimate} SAR</Text>
@@ -221,6 +226,7 @@ export default function PassengerHomeScreen({ navigation }: any) {
           </Marker>
         ))}
       </MapView>
+      <MapAttribution />
 
       {/* Top bar — floating */}
       <View style={styles.topBar}>
@@ -381,11 +387,17 @@ const styles = StyleSheet.create({
   carPinText: { fontSize: 20 },
 
   requestPin: { alignItems: 'center' },
-  requestPinText: { fontSize: 28 },
-  requestFareBubble: {
-    backgroundColor: '#1a1a2e', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 1,
+  redPoint: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: '#ef4444',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2.5, borderColor: '#fff',
+    elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
   },
-  requestFareText: { color: '#FFD700', fontSize: 10, fontWeight: '700' },
+  redPointIcon: { fontSize: 16 },
+  requestFareBubble: {
+    backgroundColor: '#ef4444', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2,
+  },
+  requestFareText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
   topBar: {
     position: 'absolute',

@@ -23,9 +23,17 @@ export const estimateFare = createAsyncThunk('trip/estimate', async (data: any) 
   return res.data;
 });
 
-export const requestTrip = createAsyncThunk('trip/request', async (data: any) => {
-  const res = await tripsApi.request(data);
-  return res.data;
+export const requestTrip = createAsyncThunk('trip/request', async (data: any, { rejectWithValue }) => {
+  try {
+    const res = await tripsApi.request(data);
+    return res.data;
+  } catch (e: any) {
+    // Surface the real server message (e.g. validation error) instead of a generic network error
+    const serverMsg = e.response?.data?.message;
+    return rejectWithValue(
+      Array.isArray(serverMsg) ? serverMsg.join('\n') : serverMsg || 'No connection. Check your internet and try again.',
+    );
+  }
 });
 
 export const cancelTrip = createAsyncThunk('trip/cancel', async ({ id, reason }: { id: string; reason?: string }) => {
@@ -68,7 +76,7 @@ const tripSlice = createSlice({
       .addCase(requestTrip.fulfilled, (state, action) => { state.loading = false; state.currentTrip = action.payload; })
       .addCase(requestTrip.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message ?? 'Failed to request trip';
+        state.error = (action.payload as string) ?? action.error.message ?? 'Failed to request trip';
       })
       .addCase(cancelTrip.fulfilled, (state) => { state.currentTrip = null; })
       .addCase(fetchActiveTrip.fulfilled, (state, action) => {

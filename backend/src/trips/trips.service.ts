@@ -57,7 +57,17 @@ export class TripsService {
     const activeTrip = await this.prisma.trip.findFirst({
       where: { passengerId, status: { in: ['REQUESTED', 'ACCEPTED', 'DRIVER_ARRIVED', 'IN_PROGRESS'] } },
     });
-    if (activeTrip) throw new BadRequestException('You already have an active trip');
+    if (activeTrip) {
+      // A request no driver accepted yet shouldn't block a new booking — replace it
+      if (activeTrip.status === 'REQUESTED') {
+        await this.prisma.trip.update({
+          where: { id: activeTrip.id },
+          data: { status: 'CANCELLED', cancelledBy: passengerId, cancelReason: 'Replaced by new booking' },
+        });
+      } else {
+        throw new BadRequestException('You already have an active trip. Complete or cancel it first.');
+      }
+    }
 
     let promoCodeId: string | undefined;
     let discount = 0;
