@@ -1,0 +1,16 @@
+{
+  "name": "taxiapp-e2e",
+  "private": true,
+  "description": "Automated end-to-end tests against the live TaxiApp API",
+  "scripts": {
+    "test": "node test.js && node stress.js && node lifecycle.js && node realspeed.js",
+    "test:flow": "node test.js",
+    "test:booking": "node stress.js",
+    "test:lifecycle": "node lifecycle.js",
+    "test:meter": "node realspeed.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "socket.io-client": "^4.7.0"
+  }
+}
