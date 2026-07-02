@@ -18,9 +18,16 @@ const initialState: TripState = {
   currentTrip: null, fareEstimate: null, nearbyDrivers: [], loading: false, error: null,
 };
 
-export const estimateFare = createAsyncThunk('trip/estimate', async (data: any) => {
-  const res = await tripsApi.estimate(data);
-  return res.data;
+export const estimateFare = createAsyncThunk('trip/estimate', async (data: any, { rejectWithValue }) => {
+  try {
+    const res = await tripsApi.estimate(data);
+    return res.data;
+  } catch (e: any) {
+    const serverMsg = e.response?.data?.message;
+    return rejectWithValue(
+      Array.isArray(serverMsg) ? serverMsg.join('\n') : serverMsg || 'No connection. Check your internet and try again.',
+    );
+  }
 });
 
 export const requestTrip = createAsyncThunk('trip/request', async (data: any, { rejectWithValue }) => {

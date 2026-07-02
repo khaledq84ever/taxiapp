@@ -10,8 +10,14 @@ import {
   Modal,
   Linking,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import OsmTiles from '../../components/OsmTiles';
+import {
+  Map as MapLibreMap,
+  Camera,
+  Marker,
+  UserLocation,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
+import { MAP_STYLE } from '../../components/appMap';
 import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
@@ -52,7 +58,7 @@ export default function PassengerHomeScreen({ navigation }: any) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'ride' | 'deliver'>('ride');
   const [selectedDriver, setSelectedDriver] = useState<LiveDriver | null>(null);
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
 
   // Get location and center map
   useEffect(() => {
@@ -61,12 +67,11 @@ export default function PassengerHomeScreen({ navigation }: any) {
       if (status !== 'granted') return;
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setLocation(loc.coords);
-      mapRef.current?.animateToRegion({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        latitudeDelta: 0.08,  // city-level zoom
-        longitudeDelta: 0.08,
-      }, 800);
+      cameraRef.current?.easeTo({
+        center: [loc.coords.longitude, loc.coords.latitude],
+        zoom: 12, // city-level zoom
+        duration: 800,
+      });
     })();
   }, []);
 
@@ -156,18 +161,17 @@ export default function PassengerHomeScreen({ navigation }: any) {
 
   const recenterMap = () => {
     if (!location) return;
-    mapRef.current?.animateToRegion({
-      latitude: location.latitude,
-      longitude: location.longitude,
-      latitudeDelta: 0.08,
-      longitudeDelta: 0.08,
-    }, 600);
+    cameraRef.current?.easeTo({
+      center: [location.longitude, location.latitude],
+      zoom: 12,
+      duration: 600,
+    });
   };
 
   const zoomToCity = () => {
     const lat = location?.latitude ?? 24.7136;
     const lng = location?.longitude ?? 46.6753;
-    mapRef.current?.animateToRegion({ latitude: lat, longitude: lng, latitudeDelta: 0.5, longitudeDelta: 0.5 }, 600);
+    cameraRef.current?.easeTo({ center: [lng, lat], zoom: 9.5, duration: 600 });
   };
 
   const driverCount = liveDrivers.size;
@@ -178,26 +182,28 @@ export default function PassengerHomeScreen({ navigation }: any) {
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
       {/* Full-screen map */}
-      <MapView
-        ref={mapRef}
+      <MapLibreMap
         style={styles.map}
-        mapType="none"
-        showsUserLocation
-        showsMyLocationButton={false}
-        showsCompass={false}
-        initialRegion={
-          location
-            ? { latitude: location.latitude, longitude: location.longitude, latitudeDelta: 0.08, longitudeDelta: 0.08 }
-            : { latitude: 24.7136, longitude: 46.6753, latitudeDelta: 0.5, longitudeDelta: 0.5 }
-        }
+        mapStyle={MAP_STYLE}
+        attribution={false}
+        logo={false}
+        compass={false}
       >
-        <OsmTiles />
+        <Camera
+          ref={cameraRef}
+          initialViewState={
+            location
+              ? { center: [location.longitude, location.latitude], zoom: 12 }
+              : { center: [46.6753, 24.7136], zoom: 9.5 }
+          }
+        />
+        <UserLocation />
         {/* Live driver pins */}
         {Array.from(liveDrivers.values()).map((d) => (
           <Marker
             key={d.id}
-            coordinate={{ latitude: d.currentLat, longitude: d.currentLng }}
-            anchor={{ x: 0.5, y: 0.5 }}
+            lngLat={[d.currentLng, d.currentLat]}
+            anchor="center"
             onPress={() => setSelectedDriver(d)}
           >
             <View style={styles.carPin}>
@@ -210,8 +216,8 @@ export default function PassengerHomeScreen({ navigation }: any) {
         {Array.from(liveRequests.values()).map((r) => (
           <Marker
             key={r.id}
-            coordinate={{ latitude: r.pickupLat, longitude: r.pickupLng }}
-            anchor={{ x: 0.5, y: 1 }}
+            lngLat={[r.pickupLng, r.pickupLat]}
+            anchor="bottom"
           >
             <View style={styles.requestPin}>
               <View style={styles.redPoint}>
@@ -225,7 +231,7 @@ export default function PassengerHomeScreen({ navigation }: any) {
             </View>
           </Marker>
         ))}
-      </MapView>
+      </MapLibreMap>
       <MapAttribution />
 
       {/* Top bar — floating */}

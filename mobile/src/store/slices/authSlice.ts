@@ -16,21 +16,26 @@ const initialState: AuthState = {
 
 // Restore session or auto-create guest on first launch
 export const initAuth = createAsyncThunk('auth/init', async () => {
-  let token = await AsyncStorage.getItem('accessToken');
+  const token = await AsyncStorage.getItem('accessToken');
 
-  if (!token) {
-    // First launch — create guest account automatically, no registration needed
-    const res = await authApi.guest();
-    const newToken: string = res.data.accessToken;
-    await AsyncStorage.setItem('accessToken', newToken);
-    return { user: res.data.user, accessToken: newToken, activeTrip: null };
+  if (token) {
+    try {
+      const [profileRes, activeTrip] = await Promise.all([
+        usersApi.getProfile(),
+        tripsApi.getActive().catch(() => ({ data: null })),
+      ]);
+      return { user: profileRes.data, accessToken: token, activeTrip: activeTrip.data };
+    } catch {
+      // Stored session is dead (expired/invalid token) — discard it and fall
+      // through to a fresh guest, otherwise every API call 401s forever
+      await AsyncStorage.removeItem('accessToken');
+    }
   }
 
-  const [profileRes, activeTrip] = await Promise.all([
-    usersApi.getProfile(),
-    tripsApi.getActive().catch(() => ({ data: null })),
-  ]);
-  return { user: profileRes.data, accessToken: token, activeTrip: activeTrip.data };
+  const res = await authApi.guest();
+  const newToken: string = res.data.accessToken;
+  await AsyncStorage.setItem('accessToken', newToken);
+  return { user: res.data.user, accessToken: newToken, activeTrip: null };
 });
 
 export const sendOtp = createAsyncThunk('auth/sendOtp', async (phone: string) => {

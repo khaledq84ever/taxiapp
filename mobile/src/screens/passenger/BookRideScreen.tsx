@@ -8,9 +8,19 @@ import {
   Alert,
   TextInput,
   ScrollView,
+  type NativeSyntheticEvent,
 } from 'react-native';
-import MapView, { Marker, Polyline, MapPressEvent } from 'react-native-maps';
-import OsmTiles from '../../components/OsmTiles';
+import {
+  Map as MapLibreMap,
+  Camera,
+  Marker,
+  UserLocation,
+  GeoJSONSource,
+  Layer,
+  type CameraRef,
+  type PressEvent,
+} from '@maplibre/maplibre-react-native';
+import { MAP_STYLE, fitCoordinates, lineBetween } from '../../components/appMap';
 import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,7 +41,7 @@ export default function BookRideScreen({ navigation, route }: any) {
   const dispatch = useDispatch<AppDispatch>();
   const { fareEstimate, loading } = useSelector((s: RootState) => s.trip);
 
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [step, setStep] = useState<Step>('map');
   const [dropoff, setDropoff] = useState<{ latitude: number; longitude: number } | null>(null);
   const [dropoffLabel, setDropoffLabel] = useState('');
@@ -55,13 +65,15 @@ export default function BookRideScreen({ navigation, route }: any) {
       .catch(() => {});
   }, []);
 
-  const handleMapPress = async (e: MapPressEvent) => {
-    const coord = e.nativeEvent.coordinate;
+  const handleMapPress = async (e: NativeSyntheticEvent<PressEvent>) => {
+    const [lng, lat] = e.nativeEvent.lngLat;
+    const coord = { latitude: lat, longitude: lng };
     setDropoff(coord);
     setDropoffLabel(`${coord.latitude.toFixed(4)}, ${coord.longitude.toFixed(4)}`);
-    mapRef.current?.fitToCoordinates(
-      [{ latitude: location.latitude, longitude: location.longitude }, coord],
-      { edgePadding: { top: 80, right: 60, bottom: 340, left: 60 }, animated: true },
+    fitCoordinates(
+      cameraRef.current,
+      [[location.longitude, location.latitude], [coord.longitude, coord.latitude]],
+      { top: 80, right: 60, bottom: 340, left: 60 },
     );
     // Reverse geocode to get readable address
     try {
@@ -82,8 +94,9 @@ export default function BookRideScreen({ navigation, route }: any) {
         dropoffLat: dropoff.latitude, dropoffLng: dropoff.longitude,
       })).unwrap();
       setStep('choose');
-    } catch {
-      Alert.alert('Error', 'Could not get fare estimate. Try again.');
+    } catch (e: any) {
+      const msg = typeof e === 'string' ? e : e?.message || 'Could not get fare estimate. Try again.';
+      Alert.alert('Error', msg);
     } finally {
       setEstimating(false);
     }
@@ -123,33 +136,43 @@ export default function BookRideScreen({ navigation, route }: any) {
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <MapLibreMap
         style={styles.map}
-        initialRegion={{ latitude: location.latitude, longitude: location.longitude, latitudeDelta: 0.04, longitudeDelta: 0.04 }}
+        mapStyle={MAP_STYLE}
         onPress={step === 'map' ? handleMapPress : undefined}
-        mapType="none"
-        showsUserLocation
-        showsMyLocationButton={false}
+        attribution={false}
+        logo={false}
+        compass={false}
       >
-        <OsmTiles />
-        <Marker coordinate={{ latitude: location.latitude, longitude: location.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
+        <Camera
+          ref={cameraRef}
+          initialViewState={{ center: [location.longitude, location.latitude], zoom: 13 }}
+        />
+        <UserLocation />
+        <Marker lngLat={[location.longitude, location.latitude]} anchor="center">
           <View style={styles.pickupDot}><View style={styles.pickupInner} /></View>
         </Marker>
         {dropoff && (
           <>
-            <Marker coordinate={dropoff} anchor={{ x: 0.5, y: 1 }}>
+            <Marker lngLat={[dropoff.longitude, dropoff.latitude]} anchor="bottom">
               <Text style={styles.dropoffPinText}>📍</Text>
             </Marker>
-            <Polyline
-              coordinates={[{ latitude: location.latitude, longitude: location.longitude }, dropoff]}
-              strokeColor="#1a1a2e"
-              strokeWidth={3}
-              lineDashPattern={[8, 4]}
-            />
+            <GeoJSONSource
+              id="routeSource"
+              data={lineBetween(
+                [location.longitude, location.latitude],
+                [dropoff.longitude, dropoff.latitude],
+              )}
+            >
+              <Layer
+                id="routeLine"
+                type="line"
+                style={{ lineColor: '#FFD700', lineWidth: 3, lineDasharray: [2, 1.5] }}
+              />
+            </GeoJSONSource>
           </>
         )}
-      </MapView>
+      </MapLibreMap>
       <MapAttribution />
 
       {/* Step 1: pick destination */}

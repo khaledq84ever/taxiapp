@@ -9,8 +9,13 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import OsmTiles from '../../components/OsmTiles';
+import {
+  Map as MapLibreMap,
+  Camera,
+  Marker,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
+import { MAP_STYLE } from '../../components/appMap';
 import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { driversApi, tripsApi } from '../../services/api';
@@ -27,7 +32,7 @@ export default function DriverHomeScreen({ navigation }: any) {
   const [tripRequest, setTripRequest] = useState<any>(null);
   const [accepting, setAccepting] = useState(false);
   const [liveRequests, setLiveRequests] = useState<Map<string, { id: string; pickupLat: number; pickupLng: number; fareEstimate?: number }>>(new Map());
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const locationSubRef = useRef<Location.LocationSubscription | null>(null);
 
   // Initial setup: get location + load driver status
@@ -74,10 +79,11 @@ export default function DriverHomeScreen({ navigation }: any) {
             heading: h,
           });
           // Smoothly follow driver on map
-          mapRef.current?.animateToRegion(
-            { ...pos, latitudeDelta: 0.01, longitudeDelta: 0.01 },
-            400,
-          );
+          cameraRef.current?.easeTo({
+            center: [pos.longitude, pos.latitude],
+            zoom: 15,
+            duration: 400,
+          });
         },
       );
     };
@@ -181,22 +187,20 @@ export default function DriverHomeScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       {location && (
-        <MapView
-          ref={mapRef}
+        <MapLibreMap
           style={styles.map}
-          initialRegion={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-          mapType="none"
+          mapStyle={MAP_STYLE}
+          attribution={false}
+          logo={false}
+          compass={false}
         >
-          <OsmTiles />
+          <Camera
+            ref={cameraRef}
+            initialViewState={{ center: [location.longitude, location.latitude], zoom: 15 }}
+          />
           <Marker
-            coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            flat
+            lngLat={[location.longitude, location.latitude]}
+            anchor="center"
           >
             <View style={[
               styles.selfMarker,
@@ -210,8 +214,8 @@ export default function DriverHomeScreen({ navigation }: any) {
           {Array.from(liveRequests.values()).map((r: any) => (
             <Marker
               key={r.id}
-              coordinate={{ latitude: r.pickupLat, longitude: r.pickupLng }}
-              anchor={{ x: 0.5, y: 0.5 }}
+              lngLat={[r.pickupLng, r.pickupLat]}
+              anchor="center"
               onPress={() => handleTapRequest(r.id)}
             >
               <View style={styles.requestPin}>
@@ -226,7 +230,7 @@ export default function DriverHomeScreen({ navigation }: any) {
               </View>
             </Marker>
           ))}
-        </MapView>
+        </MapLibreMap>
       )}
       <MapAttribution />
 

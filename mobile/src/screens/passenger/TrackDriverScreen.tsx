@@ -8,8 +8,15 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
-import OsmTiles from '../../components/OsmTiles';
+import {
+  Map as MapLibreMap,
+  Camera,
+  Marker,
+  GeoJSONSource,
+  Layer,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
+import { MAP_STYLE, fitCoordinates, lineBetween } from '../../components/appMap';
 import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
@@ -28,7 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function TrackDriverScreen({ navigation }: any) {
   const dispatch = useDispatch<AppDispatch>();
   const { currentTrip } = useSelector((s: RootState) => s.trip);
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
 
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -53,12 +60,10 @@ export default function TrackDriverScreen({ navigation }: any) {
 
   const fitMap = useCallback(
     (myLoc: { lat: number; lng: number }, driverLoc: { lat: number; lng: number }) => {
-      mapRef.current?.fitToCoordinates(
-        [
-          { latitude: myLoc.lat, longitude: myLoc.lng },
-          { latitude: driverLoc.lat, longitude: driverLoc.lng },
-        ],
-        { edgePadding: { top: 80, right: 80, bottom: 300, left: 80 }, animated: true },
+      fitCoordinates(
+        cameraRef.current,
+        [[myLoc.lng, myLoc.lat], [driverLoc.lng, driverLoc.lat]],
+        { top: 80, right: 80, bottom: 300, left: 80 },
       );
     },
     [],
@@ -176,22 +181,21 @@ export default function TrackDriverScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <MapLibreMap
         style={styles.map}
-        initialRegion={{
-          latitude: myLocation.lat,
-          longitude: myLocation.lng,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-        mapType="none"
+        mapStyle={MAP_STYLE}
+        attribution={false}
+        logo={false}
+        compass={false}
       >
-        <OsmTiles />
+        <Camera
+          ref={cameraRef}
+          initialViewState={{ center: [myLocation.lng, myLocation.lat], zoom: 13 }}
+        />
         {/* Passenger marker (me) */}
         <Marker
-          coordinate={{ latitude: myLocation.lat, longitude: myLocation.lng }}
-          anchor={{ x: 0.5, y: 0.5 }}
+          lngLat={[myLocation.lng, myLocation.lat]}
+          anchor="center"
         >
           <View style={styles.myMarker}>
             <Text style={styles.myMarkerText}>📍</Text>
@@ -200,23 +204,26 @@ export default function TrackDriverScreen({ navigation }: any) {
 
         {/* Route line: my location → driver */}
         {driverLocation && (
-          <Polyline
-            coordinates={[
-              { latitude: myLocation.lat, longitude: myLocation.lng },
-              { latitude: driverLocation.lat, longitude: driverLocation.lng },
-            ]}
-            strokeColor="#FFD700"
-            strokeWidth={3}
-            lineDashPattern={[8, 4]}
-          />
+          <GeoJSONSource
+            id="driverRouteSource"
+            data={lineBetween(
+              [myLocation.lng, myLocation.lat],
+              [driverLocation.lng, driverLocation.lat],
+            )}
+          >
+            <Layer
+              id="driverRouteLine"
+              type="line"
+              style={{ lineColor: '#FFD700', lineWidth: 3, lineDasharray: [2, 1.5] }}
+            />
+          </GeoJSONSource>
         )}
 
         {/* Driver marker — rotates with heading, updates in real time */}
         {driverLocation && (
           <Marker
-            coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            flat
+            lngLat={[driverLocation.lng, driverLocation.lat]}
+            anchor="center"
           >
             <View style={[
               styles.driverMarker,
@@ -227,7 +234,7 @@ export default function TrackDriverScreen({ navigation }: any) {
             </View>
           </Marker>
         )}
-      </MapView>
+      </MapLibreMap>
       <MapAttribution />
 
       {/* Bottom sheet */}

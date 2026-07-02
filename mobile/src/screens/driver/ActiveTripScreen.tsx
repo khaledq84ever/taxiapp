@@ -10,8 +10,15 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
-import OsmTiles from '../../components/OsmTiles';
+import {
+  Map as MapLibreMap,
+  Camera,
+  Marker,
+  GeoJSONSource,
+  Layer,
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
+import { MAP_STYLE, fitCoordinates, lineBetween } from '../../components/appMap';
 import MapAttribution from '../../components/MapAttribution';
 import * as Location from 'expo-location';
 import { socketService } from '../../services/socket';
@@ -27,7 +34,7 @@ const ACTION_MAP: Record<string, { label: string; color: string }> = {
 
 export default function ActiveTripScreen({ navigation, route }: any) {
   const { trip } = route.params as { trip: any };
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
 
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [heading, setHeading] = useState<number>(-1);
@@ -61,15 +68,11 @@ export default function ActiveTripScreen({ navigation, route }: any) {
           socketService.emit('driver:location-update', { ...pos, heading: h });
 
           // Keep map centered on driver
-          mapRef.current?.animateToRegion(
-            {
-              latitude: pos.lat,
-              longitude: pos.lng,
-              latitudeDelta: 0.008,
-              longitudeDelta: 0.008,
-            },
-            400,
-          );
+          cameraRef.current?.easeTo({
+            center: [pos.lng, pos.lat],
+            zoom: 15,
+            duration: 400,
+          });
         },
       );
 
@@ -78,13 +81,14 @@ export default function ActiveTripScreen({ navigation, route }: any) {
         setPassengerLocation(pLoc);
         setEta({ minutes: data.etaMinutes, distanceKm: data.distanceKm });
 
-        if (mapRef.current && latestMyLoc.current) {
-          mapRef.current.fitToCoordinates(
+        if (latestMyLoc.current) {
+          fitCoordinates(
+            cameraRef.current,
             [
-              { latitude: latestMyLoc.current.lat, longitude: latestMyLoc.current.lng },
-              { latitude: pLoc.lat, longitude: pLoc.lng },
+              [latestMyLoc.current.lng, latestMyLoc.current.lat],
+              [pLoc.lng, pLoc.lat],
             ],
-            { edgePadding: { top: 80, right: 80, bottom: 320, left: 80 }, animated: true },
+            { top: 80, right: 80, bottom: 320, left: 80 },
           );
         }
       });
@@ -170,23 +174,21 @@ export default function ActiveTripScreen({ navigation, route }: any) {
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <MapLibreMap
         style={styles.map}
-        initialRegion={{
-          latitude: myLocation.lat,
-          longitude: myLocation.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-        mapType="none"
+        mapStyle={MAP_STYLE}
+        attribution={false}
+        logo={false}
+        compass={false}
       >
-        <OsmTiles />
+        <Camera
+          ref={cameraRef}
+          initialViewState={{ center: [myLocation.lng, myLocation.lat], zoom: 15 }}
+        />
         {/* Driver marker — rotates with heading */}
         <Marker
-          coordinate={{ latitude: myLocation.lat, longitude: myLocation.lng }}
-          anchor={{ x: 0.5, y: 0.5 }}
-          flat
+          lngLat={[myLocation.lng, myLocation.lat]}
+          anchor="center"
         >
           <View style={[styles.driverMarker, { transform: [{ rotate: `${carRotation}deg` }] }]}>
             <Text style={styles.driverMarkerText}>🚗</Text>
@@ -194,35 +196,45 @@ export default function ActiveTripScreen({ navigation, route }: any) {
         </Marker>
 
         {/* Route line: driver → target */}
-        <Polyline
-          coordinates={[
-            { latitude: myLocation.lat, longitude: myLocation.lng },
-            targetCoord,
-          ]}
-          strokeColor="#FFD700"
-          strokeWidth={3}
-          lineDashPattern={[8, 4]}
-        />
+        <GeoJSONSource
+          id="targetRouteSource"
+          data={lineBetween(
+            [myLocation.lng, myLocation.lat],
+            [targetCoord.longitude, targetCoord.latitude],
+          )}
+        >
+          <Layer
+            id="targetRouteLine"
+            type="line"
+            style={{ lineColor: '#FFD700', lineWidth: 3, lineDasharray: [2, 1.5] }}
+          />
+        </GeoJSONSource>
 
         {/* Pickup / destination pin */}
         <Marker
-          coordinate={targetCoord}
-          title={status === 'IN_PROGRESS' ? 'Destination' : 'Pickup Point'}
-          pinColor={status === 'IN_PROGRESS' ? '#2563eb' : '#FFD700'}
-        />
+          lngLat={[targetCoord.longitude, targetCoord.latitude]}
+          anchor="bottom"
+        >
+          <View style={[
+            styles.targetPin,
+            { backgroundColor: status === 'IN_PROGRESS' ? '#2563eb' : '#FFD700' },
+          ]}>
+            <Text style={styles.targetPinText}>{status === 'IN_PROGRESS' ? '🏁' : '📍'}</Text>
+          </View>
+        </Marker>
 
         {/* Live passenger location */}
         {passengerLocation && (
           <Marker
-            coordinate={{ latitude: passengerLocation.lat, longitude: passengerLocation.lng }}
-            anchor={{ x: 0.5, y: 0.5 }}
+            lngLat={[passengerLocation.lng, passengerLocation.lat]}
+            anchor="center"
           >
             <View style={styles.passengerMarker}>
               <Text style={styles.passengerMarkerText}>👤</Text>
             </View>
           </Marker>
         )}
-      </MapView>
+      </MapLibreMap>
       <MapAttribution />
 
       {/* Bottom sheet */}
@@ -497,4 +509,15 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   passengerMarkerText: { fontSize: 22 },
+  targetPin: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2.5,
+    borderColor: '#fff',
+    elevation: 5,
+  },
+  targetPinText: { fontSize: 18 },
 });
