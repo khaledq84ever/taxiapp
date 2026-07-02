@@ -5,7 +5,7 @@ import { Text, StyleSheet, View, Platform, StatusBar } from 'react-native';
 export default function MapAttribution() {
   return (
     <View style={styles.wrap} pointerEvents="none">
-      <Text style={styles.text}>© OpenStreetMap</Text>
+      <Text style={styles.text}>© OpenStreetMap © CARTO</Text>
     </View>
   );
 }
