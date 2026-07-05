@@ -414,6 +414,21 @@
     .footer-col h4 { font-size: 13px; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
     .footer-col a { display: block; color: var(--muted); text-decoration: none; font-size: 14px; margin-bottom: 10px; transition: color 0.2s; }
     .footer-col a:hover { color: var(--gold); }
+    /* ─── DEV CREDIT ─── */
+    .dev-credit {
+      display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+      padding: 8px 18px; border-radius: 999px;
+      background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.25);
+      color: var(--muted); text-decoration: none; font-size: 13px;
+      transition: all 0.2s;
+    }
+    .dev-credit:hover { color: white; border-color: var(--gold); background: rgba(255,215,0,0.15); box-shadow: 0 6px 20px rgba(255,215,0,0.15); }
+    .dev-credit b { color: var(--gold); font-weight: 700; }
+    .dev-credit svg { color: var(--gold); flex-shrink: 0; }
+    .dev-credit .credit-ar { font-family: var(--font-arabic); direction: rtl; }
+    .dev-credit .credit-sep { color: rgba(255,215,0,0.4); }
+    .hero-credit { margin-bottom: 28px; }
+    .footer-credit { display: flex; justify-content: center; margin-bottom: 24px; }
     .footer-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
     .footer-bottom p { font-size: 13px; color: var(--muted); }
     .footer-flag { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
@@ -467,6 +482,12 @@
       <div class="hero-divider"></div>
       <p class="hero-desc-ar">احجز رحلتك في ثوانٍ. تابع سائقك لحظةً بلحظة على الخريطة.<br>ادفع نقداً أو بالبطاقة. متوفر في الرياض وجدة والدمام والمزيد.</p>
     </div>
+    <a href="https://x.com/KhaledQ84Ever" target="_blank" class="dev-credit hero-credit">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span>Program by <b>@KhaledQ84Ever</b></span>
+      <span class="credit-sep">•</span>
+      <span class="credit-ar">برمجة وتطوير <b>@KhaledQ84Ever</b></span>
+    </a>
     <div class="hero-btns">
       <a href="#download" class="btn-primary">⬇ Download App</a>
       <a href="https://github.com/khaledq84ever/taxiapp" target="_blank" class="btn-secondary">
@@ -822,8 +843,19 @@ POST /trips/estimate
     <div class="footer-col">
       <h4>Contact</h4>
       <a href="mailto:khaledq84ever@gmail.com">khaledq84ever@gmail.com</a>
+      <a href="https://x.com/KhaledQ84Ever" target="_blank">𝕏 @KhaledQ84Ever</a>
+      <a href="https://wa.me/96555828769" target="_blank">💬 WhatsApp +965 5582 8769</a>
+      <a href="https://discord.gg/zbHbSsCUua" target="_blank">🎮 Discord Server</a>
       <a href="https://github.com/khaledq84ever" target="_blank">GitHub Profile</a>
     </div>
+  </div>
+  <div class="footer-credit">
+    <a href="https://x.com/KhaledQ84Ever" target="_blank" class="dev-credit">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span>Program by <b>@KhaledQ84Ever</b></span>
+      <span class="credit-sep">•</span>
+      <span class="credit-ar">برمجة وتطوير <b>@KhaledQ84Ever</b></span>
+    </a>
   </div>
   <div class="footer-bottom">
     <p>© 2026 TaxiApp. MIT License.</p>
