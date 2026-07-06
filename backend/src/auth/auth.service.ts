@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import * as twilio from 'twilio';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -85,14 +86,12 @@ export class AuthService {
   }
 
   async guestLogin(name?: string) {
-    const guestId = Math.random().toString(36).slice(2, 10);
-    const phone = `+guest${guestId}`;
-    let user = await this.prisma.user.findUnique({ where: { phone } });
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: { phone, role: 'PASSENGER', isVerified: true, name: name || 'Guest' },
-      });
-    }
+    // Crypto-random, collision-safe id (Math.random was predictable and could
+    // collide at scale, silently logging a new user into an existing guest).
+    const phone = `+guest${randomBytes(6).toString('hex')}`;
+    const user = await this.prisma.user.create({
+      data: { phone, role: 'PASSENGER', isVerified: true, name: name || 'Guest' },
+    });
     const tokens = await this.generateTokens(user.id, user.phone, user.role);
     return { user, ...tokens };
   }

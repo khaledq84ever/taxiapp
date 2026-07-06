@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -14,6 +17,9 @@ import { PromosModule } from './promos/promos.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Global rate limit: 120 requests / minute / IP. Stops guest-account spam
+    // (POST /auth/guest creates a DB row per call) and generic brute force.
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -25,5 +31,7 @@ import { PromosModule } from './promos/promos.module';
     NotificationsModule,
     PromosModule,
   ],
+  controllers: [AppController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

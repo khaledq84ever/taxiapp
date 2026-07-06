@@ -1,7 +1,16 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller()
 export class AppController {
+  // Lightweight liveness probe for the uptime monitor (webcheck). Not rate
+  // limited so monitoring pings never trip the throttler.
+  @SkipThrottle()
+  @Get('health')
+  getHealth() {
+    return { ok: true, ts: Date.now(), uptime_s: Math.round(process.uptime()) };
+  }
+
   @Get()
   getRoot() {
     return {

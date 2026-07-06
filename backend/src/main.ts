@@ -5,6 +5,12 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Behind Railway's proxy, X-Forwarded-For is "<real client>, <edge>" and the
+  // edge IP ROTATES every request. `trust proxy: 1` keyed the rate limiter on
+  // that rotating edge (so it never accumulated); `true` makes req.ip the
+  // leftmost/real client, which is stable per user.
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
+
   app.enableCors({ origin: '*' });
 
   // Root welcome endpoint (before global prefix)
@@ -17,10 +23,10 @@ async function bootstrap() {
       description: 'Ride-sharing platform for Saudi Arabia 🇸🇦',
       base_url: '/api/v1',
       endpoints: {
-        auth: '/api/v1/auth/send-otp',
+        auth: '/api/v1/auth/guest',
         drivers: '/api/v1/drivers/nearby',
         trips: '/api/v1/trips/estimate',
-        admin: '/api/v1/admin/stats',
+        health: '/api/v1/health',
       },
       github: 'https://github.com/khaledq84ever/taxiapp',
       website: 'https://khaledq84ever.github.io/taxiapp/',
