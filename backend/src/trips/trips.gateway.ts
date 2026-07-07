@@ -67,6 +67,12 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { lat: number; lng: number; heading?: number },
   ) {
     const userId = client.data.userId;
+    if (!this.validCoords(data?.lat, data?.lng)) return;
+
+    // Only actual drivers may stream — a non-driver's update would throw on
+    // driver.update and could poison the public map otherwise.
+    const driver = await this.prisma.driver.findUnique({ where: { userId }, select: { id: true, isOnline: true } });
+    if (!driver) return;
 
     // Save to DB at most every 10 seconds to reduce write load
     const now = Date.now();
@@ -79,8 +85,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // Broadcast live location to ALL passengers watching the public map
-    const driver = await this.prisma.driver.findUnique({ where: { userId }, select: { id: true, isOnline: true } });
-    if (driver?.isOnline) {
+    if (driver.isOnline) {
       this.server.to('public:drivers').emit('public:driver-location', {
         driverId: driver.id,
         lat: data.lat,
@@ -177,6 +182,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { lat: number; lng: number },
   ) {
     const userId = client.data.userId;
+    if (!this.validCoords(data?.lat, data?.lng)) return;
     this.passengerLocations.set(userId, { lat: data.lat, lng: data.lng });
 
     const activeTrip = await this.prisma.trip.findFirst({
@@ -233,6 +239,9 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       include: { passenger: { select: { name: true, phone: true, profilePhoto: true } } },
     });
     if (!trip) return;
+    // Only the trip's own passenger may broadcast it — otherwise anyone could
+    // blast a stranger's trip (with their name + phone) to drivers.
+    if (trip.passengerId !== client.data.userId) return;
 
     const allDrivers = await this.prisma.driver.findMany({
       where: { isOnline: true, status: 'APPROVED' },
@@ -310,6 +319,8 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     if (!trip) return;
+    // Only the assigned driver may announce the acceptance.
+    if (!trip.driver || trip.driver.userId !== client.data.userId) return;
 
     this.server.to(`user:${trip.passengerId}`).emit('server:driver-found', {
       driver: trip.driver,
@@ -335,8 +346,13 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { tripId: string },
   ) {
-    const trip = await this.prisma.trip.findUnique({ where: { id: data.tripId } });
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: data.tripId },
+      include: { driver: { select: { userId: true } } },
+    });
     if (!trip) return;
+    // Only the assigned driver may complete — this path persists finalFare.
+    if (!trip.driver || trip.driver.userId !== client.data.userId) return;
 
     // Use actual distance driven (from live odometer) for final fare
     const odo = this.tripOdometer.get(data.tripId);
@@ -400,6 +416,8 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { tripId: string; text: string },
   ) {
     const senderId = client.data.userId;
+    const text = String(data?.text ?? '').slice(0, 1000).trim();
+    if (!text) return;
     const trip = await this.prisma.trip.findUnique({
       where: { id: data.tripId },
       include: { driver: true },
@@ -416,7 +434,7 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!targetUserId) return;
 
     const payload = {
-      text: data.text,
+      text,
       senderId,
       timestamp: new Date().toISOString(),
     };
@@ -430,6 +448,14 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // ─── helpers ──────────────────────────────────────────────────────────────
+  // NaN/out-of-range coords would poison the odometer, fares, and DB rows.
+  private validCoords(lat: unknown, lng: unknown): boolean {
+    return (
+      typeof lat === 'number' && Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+      typeof lng === 'number' && Number.isFinite(lng) && lng >= -180 && lng <= 180
+    );
+  }
+
   private haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
