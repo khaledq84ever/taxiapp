@@ -44,9 +44,21 @@ export class PaymentsService {
     return { clientSecret: intent.client_secret };
   }
 
-  async confirmPayment(tripId: string) {
+  async confirmPayment(tripId: string, userId: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new NotFoundException('Trip not found');
+    if (trip.passengerId !== userId) throw new BadRequestException('Not your trip');
+
     const payment = await this.prisma.payment.findUnique({ where: { tripId } });
     if (!payment) throw new NotFoundException('Payment not found');
+
+    // Never trust the client's word that it paid — check with Stripe.
+    if (payment.stripePaymentId) {
+      const intent = await this.stripe.paymentIntents.retrieve(payment.stripePaymentId);
+      if (intent.status !== 'succeeded') {
+        throw new BadRequestException(`Payment not completed (status: ${intent.status})`);
+      }
+    }
 
     await this.prisma.payment.update({
       where: { tripId },

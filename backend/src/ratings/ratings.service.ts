@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { IsString, IsInt, IsOptional, Min, Max } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -33,9 +33,16 @@ export class RatingsService {
     }
 
     const isPassenger = trip.passengerId === raterId;
+    const isDriver = !!trip.driver && trip.driver.userId === raterId;
+    if (!isPassenger && !isDriver) throw new ForbiddenException('Not part of this trip');
     const ratedId = isPassenger ? trip.driver?.userId : trip.passengerId;
 
     if (!ratedId) throw new NotFoundException('Rated user not found');
+
+    const already = await this.prisma.rating.findFirst({
+      where: { tripId: dto.tripId, raterId },
+    });
+    if (already) throw new BadRequestException('Trip already rated');
 
     const rating = await this.prisma.rating.create({
       data: { tripId: dto.tripId, raterId, ratedId, score: dto.score, comment: dto.comment },

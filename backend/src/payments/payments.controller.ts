@@ -14,7 +14,7 @@ export class PaymentsController {
   }
 
   @Post('confirm')
-  confirm(@Body('tripId') tripId: string) {
-    return this.payments.confirmPayment(tripId);
+  confirm(@CurrentUser('id') userId: string, @Body('tripId') tripId: string) {
+    return this.payments.confirmPayment(tripId, userId);
   }
 }
