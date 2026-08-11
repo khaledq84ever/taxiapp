@@ -8,6 +8,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { initAuth } from './src/store/slices/authSlice';
 import { setCurrentTrip } from './src/store/slices/tripSlice';
 import { registerForPushNotifications } from './src/services/notifications';
+import { checkForUpdate } from './src/services/updateCheck';
 
 function Root() {
   const dispatch = useDispatch<AppDispatch>();
@@ -23,7 +24,10 @@ function Root() {
         registerForPushNotifications();
       })
       .catch(() => {})
-      .finally(() => setReady(true));
+      .finally(() => {
+        setReady(true);
+        checkForUpdate();
+      });
   }, []);
 
   if (!ready) {
