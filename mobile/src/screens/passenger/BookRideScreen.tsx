@@ -51,7 +51,6 @@ export default function BookRideScreen({ navigation, route }: any) {
   const [estimating, setEstimating] = useState(false);
   const [packageDescription, setPackageDescription] = useState('');
   const [receiverName, setReceiverName] = useState('');
-  const [receiverPhone, setReceiverPhone] = useState('');
 
   // Resolve pickup address once on mount
   React.useEffect(() => {
@@ -119,7 +118,6 @@ export default function BookRideScreen({ navigation, route }: any) {
           tripType: 'DELIVERY',
           packageDescription: packageDescription.trim(),
           receiverName: receiverName.trim() || undefined,
-          receiverPhone: receiverPhone.trim() || undefined,
         }),
       })).unwrap();
       navigation.navigate('FindingDriver');
@@ -284,14 +282,6 @@ export default function BookRideScreen({ navigation, route }: any) {
                 placeholderTextColor="#bbb"
                 value={receiverName}
                 onChangeText={setReceiverName}
-              />
-              <TextInput
-                style={[styles.packageInput, { marginBottom: 18 }]}
-                placeholder="Receiver phone (optional)"
-                placeholderTextColor="#bbb"
-                keyboardType="phone-pad"
-                value={receiverPhone}
-                onChangeText={setReceiverPhone}
               />
             </>
           ) : (
