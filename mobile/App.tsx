@@ -35,7 +35,7 @@ function Root() {
         }
         registerForPushNotifications();
         setReady(true);
-        checkForUpdate();
+        checkForUpdate(true);
       } catch {
         if (cancelled) return;
         if (attempt < RETRY_DELAYS_MS.length) {

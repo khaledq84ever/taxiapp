@@ -7,11 +7,10 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
-  otpSent: boolean;
 }
 
 const initialState: AuthState = {
-  user: null, token: null, loading: false, error: null, otpSent: false,
+  user: null, token: null, loading: false, error: null,
 };
 
 // Restore session or auto-create guest on first launch
@@ -38,15 +37,10 @@ export const initAuth = createAsyncThunk('auth/init', async () => {
   return { user: res.data.user, accessToken: newToken, activeTrip: null };
 });
 
-export const sendOtp = createAsyncThunk('auth/sendOtp', async (phone: string) => {
-  const res = await authApi.sendOtp(phone);
-  return res.data;
-});
-
-export const verifyOtp = createAsyncThunk(
-  'auth/verifyOtp',
-  async ({ phone, code, role }: { phone: string; code: string; role?: string }) => {
-    const res = await authApi.verifyOtp(phone, code, role);
+export const login = createAsyncThunk(
+  'auth/login',
+  async ({ phone, role }: { phone: string; role?: string }) => {
+    const res = await authApi.login(phone, role);
     await AsyncStorage.setItem('accessToken', res.data.accessToken);
     // Register push token after login (lazy import to avoid circular deps)
     import('../../services/notifications').then(({ registerForPushNotifications }) => {
@@ -70,21 +64,15 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(sendOtp.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(sendOtp.fulfilled, (state) => { state.loading = false; state.otpSent = true; })
-      .addCase(sendOtp.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message ?? 'Failed to send OTP';
-      })
-      .addCase(verifyOtp.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(verifyOtp.fulfilled, (state, action) => {
+      .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.accessToken;
       })
-      .addCase(verifyOtp.rejected, (state, action) => {
+      .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message ?? 'Invalid OTP';
+        state.error = action.error.message ?? 'Login failed';
       })
       .addCase(initAuth.fulfilled, (state, action) => {
         state.user = action.payload.user;

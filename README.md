@@ -66,7 +66,7 @@ taxiapp/
 │
 ├── 📁 backend/                    # NestJS API Server
 │   ├── src/
-│   │   ├── auth/                  # OTP login + JWT tokens
+│   │   ├── auth/                  # Phone login + JWT tokens
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── auth.service.ts
 │   │   │   ├── auth.module.ts
@@ -95,12 +95,12 @@ taxiapp/
 │   │   ├── screens/
 │   │   │   ├── passenger/         # Home, BookRide, FindingDriver
 │   │   │   ├── driver/            # Home, Register
-│   │   │   └── shared/            # Phone, OTP screens
+│   │   │   └── shared/            # Onboarding, Chat, Profile screens
 │   │   ├── navigation/
 │   │   │   └── AppNavigator.tsx   # Role-based routing
 │   │   ├── store/
 │   │   │   ├── slices/
-│   │   │   │   ├── authSlice.ts   # Login state + OTP
+│   │   │   │   ├── authSlice.ts   # Login state
 │   │   │   │   └── tripSlice.ts   # Trip state + live updates
 │   │   │   └── index.ts
 │   │   └── services/
@@ -226,11 +226,6 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/taxiapp"
 JWT_SECRET="your-super-secret-jwt-key-change-in-production"
 JWT_EXPIRES_IN="7d"
 
-# ─── Twilio (SMS OTP) ─────────────────────────────────────
-TWILIO_ACCOUNT_SID="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-TWILIO_AUTH_TOKEN="your_twilio_auth_token"
-TWILIO_PHONE_NUMBER="+1234567890"
-
 # ─── Stripe (Payments) ────────────────────────────────────
 STRIPE_SECRET_KEY="sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 STRIPE_WEBHOOK_SECRET="whsec_xxxxxxxx"
@@ -347,20 +342,12 @@ Example:
 
 ## 🧪 Testing the API
 
-### Send OTP (dev mode returns code in response)
+### Login (no OTP — phone number alone identifies the account)
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/send-otp \
+curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"phone": "+966501234567"}'
-```
-
-### Verify OTP and get token
-
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/verify-otp \
-  -H "Content-Type: application/json" \
-  -d '{"phone": "+966501234567", "code": "123456"}'
+  -d '{"phone": "+966501234567", "role": "PASSENGER"}'
 ```
 
 ### Estimate a fare
@@ -439,7 +426,7 @@ eas build --platform all
 ## 🗺️ Roadmap
 
 - [x] NestJS backend with all modules
-- [x] OTP authentication via Twilio
+- [x] Phone-based authentication (no OTP)
 - [x] Real-time Socket.io driver tracking
 - [x] Stripe payment integration
 - [x] React Native mobile app (passenger + driver)

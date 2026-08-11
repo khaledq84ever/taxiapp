@@ -39,8 +39,6 @@ input:focus,select:focus{border-color:#FFD700}
 .btn{background:#FFD700;color:#1a1a2e;border:none;border-radius:14px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
 .btn:active{opacity:.85}
 .btn-outline{background:transparent;border:1.5px solid #ddd;color:#666}
-.otp-hint{background:#fff8e1;border:1px solid #FFD700;border-radius:10px;padding:12px;font-size:14px;color:#1a1a2e;text-align:center;display:none}
-.otp-hint span{font-size:24px;font-weight:700;letter-spacing:4px;display:block;color:#1a1a2e;margin-top:4px}
 
 /* ── home ── */
 #screen-home{position:relative;background:#000}
@@ -175,19 +173,7 @@ input:focus,select:focus{border-color:#FFD700}
         <option value="DRIVER">🚗 Driver</option>
       </select>
     </div>
-    <button class="btn" onclick="sendOtp()">Send Code</button>
-  </div>
-
-  <div id="step-otp" class="auth-step" style="display:none">
-    <div class="otp-hint" id="otp-hint">
-      Your code: <span id="otp-code-display"></span>
-    </div>
-    <div>
-      <label>Enter 6-digit code</label>
-      <input id="otp-input" type="number" placeholder="123456" maxlength="6" inputmode="numeric">
-    </div>
-    <button class="btn" onclick="verifyOtp()">Verify & Login</button>
-    <button class="btn btn-outline" onclick="backToPhone()">← Change Number</button>
+    <button class="btn" onclick="login()">Continue</button>
   </div>
 </div>
 
@@ -388,31 +374,12 @@ window.addEventListener('load', async () => {
 });
 
 // ── AUTH ──
-async function sendOtp() {
+async function login() {
   const phone = document.getElementById('phone-input').value.trim();
+  const role = document.getElementById('role-select').value;
   if (phone.length < 10) return toast('Enter a valid phone number');
   try {
-    const data = await api('POST', '/auth/send-otp', { phone });
-    document.getElementById('step-phone').style.display = 'none';
-    document.getElementById('step-otp').style.display = 'flex';
-    if (data.code) {
-      const hint = document.getElementById('otp-hint');
-      hint.style.display = 'block';
-      document.getElementById('otp-code-display').textContent = data.code;
-    }
-    toast('Code sent!');
-  } catch(e) {
-    toast('Error sending code. Check your connection.');
-  }
-}
-
-async function verifyOtp() {
-  const phone = document.getElementById('phone-input').value.trim();
-  const code = document.getElementById('otp-input').value.trim();
-  const role = document.getElementById('role-select').value;
-  if (code.length < 6) return toast('Enter 6-digit code');
-  try {
-    const data = await api('POST', '/auth/verify-otp', { phone, code, role });
+    const data = await api('POST', '/auth/login', { phone, role });
     if (data.accessToken) {
       token = data.accessToken;
       user = data.user;
@@ -420,16 +387,11 @@ async function verifyOtp() {
       localStorage.setItem('taxi_user', JSON.stringify(user));
       showHome();
     } else {
-      toast(data.message || 'Invalid code');
+      toast(data.message || 'Login failed');
     }
   } catch(e) {
-    toast('Verification failed');
+    toast('Error logging in. Check your connection.');
   }
-}
-
-function backToPhone() {
-  document.getElementById('step-phone').style.display = 'flex';
-  document.getElementById('step-otp').style.display = 'none';
 }
 
 function logout() {
@@ -437,8 +399,6 @@ function logout() {
   localStorage.removeItem('taxi_user');
   token = null; user = null;
   show('auth');
-  document.getElementById('step-phone').style.display = 'flex';
-  document.getElementById('step-otp').style.display = 'none';
 }
 
 // ── HOME ──

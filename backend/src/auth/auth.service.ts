@@ -1,69 +1,21 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { SendOtpDto } from './dto/send-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
-import * as twilio from 'twilio';
+import { LoginDto } from './dto/login.dto';
 import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
-  private twilioClient: twilio.Twilio;
-
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
-  ) {
-    this.twilioClient = twilio.default(
-      config.get('TWILIO_ACCOUNT_SID'),
-      config.get('TWILIO_AUTH_TOKEN'),
-    );
-  }
+  ) {}
 
-  async sendOtp(dto: SendOtpDto) {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-
-    await this.prisma.otpCode.create({
-      data: { phone: dto.phone, code, expiresAt },
-    });
-
-    try {
-      const sid = this.config.get('TWILIO_ACCOUNT_SID') || '';
-      if (sid && !sid.startsWith('AC_') && sid.length > 10) {
-        await this.twilioClient.messages.create({
-          body: `Your TaxiApp code is: ${code}. Valid for 10 minutes.`,
-          from: this.config.get('TWILIO_PHONE_NUMBER'),
-          to: dto.phone,
-        });
-      }
-    } catch {
-      // Twilio not configured — code returned in response for demo
-    }
-
-    return { message: 'OTP sent', code };
-  }
-
-  async verifyOtp(dto: VerifyOtpDto) {
-    const otpRecord = await this.prisma.otpCode.findFirst({
-      where: {
-        phone: dto.phone,
-        code: dto.code,
-        used: false,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!otpRecord) throw new UnauthorizedException('Invalid or expired OTP');
-
-    await this.prisma.otpCode.update({
-      where: { id: otpRecord.id },
-      data: { used: true },
-    });
-
+  // No OTP: phone number alone identifies the account, matching the app's
+  // no-registration-friction guest flow — see project memory.
+  async login(dto: LoginDto) {
     let user = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
 
     if (!user) {
