@@ -9,7 +9,6 @@ import { initAuth } from '../store/slices/authSlice';
 import ConnectingScreen from '../screens/shared/ConnectingScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
 import ProfileScreen from '../screens/shared/ProfileScreen';
-import OnboardingScreen from '../screens/shared/OnboardingScreen';
 import SettingsScreen from '../screens/shared/SettingsScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 

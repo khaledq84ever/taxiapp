@@ -39,7 +39,7 @@ export default function SettingsScreen({ navigation }: any) {
             <Text style={styles.rowIcon}>👤</Text>
             <View>
               <Text style={styles.rowLabel}>{user?.name || 'User'}</Text>
-              <Text style={styles.rowSub}>{user?.phone}</Text>
+              <Text style={styles.rowSub}>{user?.role === 'DRIVER' ? 'Driver' : 'Passenger'}</Text>
             </View>
           </View>
           <TouchableOpacity

@@ -68,7 +68,6 @@ export default function ProfileScreen() {
         <View style={styles.roleBadge}>
           <Text style={styles.roleText}>{roleLabel}</Text>
         </View>
-        <Text style={styles.phone}>{user?.phone}</Text>
       </View>
 
       {/* Name section */}
@@ -144,12 +143,6 @@ export default function ProfileScreen() {
         <Text style={styles.sectionLabel}>Account</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>📱</Text>
-            <Text style={styles.infoLabel}>Phone</Text>
-            <Text style={styles.infoValue}>{user?.phone}</Text>
-          </View>
-          <View style={styles.infoDivider} />
-          <View style={styles.infoRow}>
             <Text style={styles.infoIcon}>🎭</Text>
             <Text style={styles.infoLabel}>Role</Text>
             <Text style={styles.infoValue}>{roleLabel}</Text>
@@ -219,7 +212,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   roleText: { color: '#1a1a2e', fontWeight: '700', fontSize: 13 },
-  phone: { color: '#666', fontSize: 15 },
 
   section: { marginBottom: 20 },
   sectionLabel: { color: '#aaa', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
