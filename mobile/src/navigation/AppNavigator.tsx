@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initAuth } from '../store/slices/authSlice';
 
-import PhoneScreen from '../screens/shared/PhoneScreen';
-import OtpScreen from '../screens/shared/OtpScreen';
+import ConnectingScreen from '../screens/shared/ConnectingScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
 import ProfileScreen from '../screens/shared/ProfileScreen';
 import OnboardingScreen from '../screens/shared/OnboardingScreen';
@@ -40,6 +40,7 @@ const headerStyle = {
 const ACTIVE_STATUSES = ['REQUESTED', 'ACCEPTED', 'DRIVER_ARRIVED', 'IN_PROGRESS'];
 
 export default function AppNavigator() {
+  const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((s: RootState) => s.auth);
   const { currentTrip } = useSelector((s: RootState) => s.trip);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -69,10 +70,9 @@ export default function AppNavigator() {
     <NavigationContainer ref={navRef}>
       <Stack.Navigator screenOptions={headerStyle}>
         {!user ? (
-          <>
-            <Stack.Screen name="Phone" component={PhoneScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="OTP" component={OtpScreen} options={{ headerShown: false }} />
-          </>
+          <Stack.Screen name="Connecting" options={{ headerShown: false }}>
+            {() => <ConnectingScreen onRetry={() => dispatch(initAuth())} />}
+          </Stack.Screen>
         ) : user.role === 'DRIVER' ? (
           <>
             <Stack.Screen

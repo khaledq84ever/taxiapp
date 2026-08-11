@@ -9,26 +9,52 @@ import { initAuth } from './src/store/slices/authSlice';
 import { setCurrentTrip } from './src/store/slices/tripSlice';
 import { registerForPushNotifications } from './src/services/notifications';
 import { checkForUpdate } from './src/services/updateCheck';
+import ConnectingScreen from './src/screens/shared/ConnectingScreen';
+
+// Guest auto-login has no user input to fall back on, so a failed attempt
+// (server unreachable, cold start, no network yet) just means "try again" —
+// never a phone number prompt. See project memory: no registration flow.
+const RETRY_DELAYS_MS = [2000, 4000, 8000, 15000];
 
 function Root() {
   const dispatch = useDispatch<AppDispatch>();
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    dispatch(initAuth())
-      .then((action: any) => {
-        // Restore active trip into trip slice on app launch
-        if (action.payload?.activeTrip) {
-          dispatch(setCurrentTrip(action.payload.activeTrip));
+    let cancelled = false;
+
+    const tryInit = async () => {
+      setFailed(false);
+      try {
+        const action: any = await dispatch(initAuth()).unwrap();
+        if (cancelled) return;
+        if (action?.activeTrip) {
+          dispatch(setCurrentTrip(action.activeTrip));
         }
         registerForPushNotifications();
-      })
-      .catch(() => {})
-      .finally(() => {
         setReady(true);
         checkForUpdate();
-      });
-  }, []);
+      } catch {
+        if (cancelled) return;
+        if (attempt < RETRY_DELAYS_MS.length) {
+          setTimeout(() => {
+            if (!cancelled) setAttempt((a) => a + 1);
+          }, RETRY_DELAYS_MS[attempt]);
+        } else {
+          setFailed(true);
+        }
+      }
+    };
+
+    tryInit();
+    return () => { cancelled = true; };
+  }, [attempt]);
+
+  if (failed) {
+    return <ConnectingScreen onRetry={() => { setFailed(false); setAttempt(0); }} />;
+  }
 
   if (!ready) {
     return (
