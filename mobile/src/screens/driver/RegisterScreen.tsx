@@ -15,7 +15,6 @@ export default function DriverRegisterScreen({ navigation }: any) {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((s: RootState) => s.auth);
 
-  const [phone, setPhone] = useState(user?.phone?.startsWith('+guest') ? '+966' : (user?.phone ?? '+966'));
   const [name, setName] = useState(user?.name === 'Guest' ? '' : (user?.name ?? ''));
   const [form, setForm] = useState({
     licenseNumber: '', carMake: '', carModel: '', carYear: '', carColor: '', carPlate: '',
@@ -25,19 +24,18 @@ export default function DriverRegisterScreen({ navigation }: any) {
   const set = (key: string) => (val: string) => setForm((f) => ({ ...f, [key]: val }));
 
   const handleSubmit = async () => {
-    if (!phone || phone.length < 8) return Alert.alert('Phone Required', 'Enter your phone number');
     for (const [k, v] of Object.entries(form)) {
       if (!v) return Alert.alert('Missing Info', `Please fill in: ${k.replace(/([A-Z])/g, ' $1').trim()}`);
     }
     if (form.carYear.length !== 4) return Alert.alert('Invalid Year', 'Enter a 4-digit year (e.g. 2022)');
     setLoading(true);
     try {
-      // Update profile with real phone + name first
-      await usersApi.updateProfile({ phone, name: name || 'Driver' });
+      // Update profile with name first
+      await usersApi.updateProfile({ name: name || 'Driver' });
       // Register as driver (backend sets role → DRIVER)
       const res = await driversApi.register({ ...form, carYear: parseInt(form.carYear) });
       // Update Redux so navigator switches to driver stack
-      dispatch(setUser({ ...user, role: 'DRIVER', phone, name: name || 'Driver' }));
+      dispatch(setUser({ ...user, role: 'DRIVER', name: name || 'Driver' }));
       Alert.alert('🎉 Application Submitted!', 'Under review — usually approved within 24 hours.');
       navigation.navigate('PendingApproval');
     } catch (e: any) {
@@ -80,15 +78,6 @@ export default function DriverRegisterScreen({ navigation }: any) {
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
-        />
-
-        <Text style={styles.label}>Phone Number *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="+966501234567"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
         />
 
         <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Vehicle Information</Text>
