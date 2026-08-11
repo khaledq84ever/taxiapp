@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import {
   Map as MapLibreMap,
@@ -22,6 +23,8 @@ import { driversApi, tripsApi } from '../../services/api';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { socketService } from '../../services/socket';
+
+const { height } = Dimensions.get('window');
 
 export default function DriverHomeScreen({ navigation }: any) {
   const { user } = useSelector((s: RootState) => s.auth);
@@ -168,6 +171,15 @@ export default function DriverHomeScreen({ navigation }: any) {
 
   const handleDeclineTrip = () => setTripRequest(null);
 
+  const recenterMap = () => {
+    if (!location) return;
+    cameraRef.current?.easeTo({
+      center: [location.longitude, location.latitude],
+      zoom: 15,
+      duration: 600,
+    });
+  };
+
   // Tap a red booking point on the map → open it in the accept modal
   const handleTapRequest = async (requestId: string) => {
     try {
@@ -233,6 +245,13 @@ export default function DriverHomeScreen({ navigation }: any) {
         </MapLibreMap>
       )}
       <MapAttribution />
+
+      {/* Recenter to my location */}
+      <View style={styles.mapControls}>
+        <TouchableOpacity style={styles.mapCtrlBtn} onPress={recenterMap}>
+          <Text style={styles.mapCtrlIcon}>◎</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Status panel */}
       <View style={styles.panel}>
@@ -409,6 +428,17 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   selfMarkerText: { fontSize: 24 },
+
+  mapControls: {
+    position: 'absolute', right: 14, bottom: height * 0.37,
+  },
+  mapCtrlBtn: {
+    width: 44, height: 44, backgroundColor: '#fff', borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 6,
+  },
+  mapCtrlIcon: { fontSize: 20, color: '#1a1a2e' },
+
   requestPin: { alignItems: 'center' },
   redPoint: {
     width: 34, height: 34, borderRadius: 17, backgroundColor: '#ef4444',
