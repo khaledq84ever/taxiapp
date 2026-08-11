@@ -1,6 +1,5 @@
 import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -10,11 +9,6 @@ export class AuthController {
   @Post('guest')
   guestLogin(@Body('name') name?: string) {
     return this.auth.guestLogin(name);
-  }
-
-  @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
   }
 
   @UseGuards(JwtAuthGuard)

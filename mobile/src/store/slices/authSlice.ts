@@ -37,19 +37,6 @@ export const initAuth = createAsyncThunk('auth/init', async () => {
   return { user: res.data.user, accessToken: newToken, activeTrip: null };
 });
 
-export const login = createAsyncThunk(
-  'auth/login',
-  async ({ phone, role }: { phone: string; role?: string }) => {
-    const res = await authApi.login(phone, role);
-    await AsyncStorage.setItem('accessToken', res.data.accessToken);
-    // Register push token after login (lazy import to avoid circular deps)
-    import('../../services/notifications').then(({ registerForPushNotifications }) => {
-      registerForPushNotifications();
-    });
-    return res.data;
-  },
-);
-
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -64,16 +51,6 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(login.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.accessToken;
-      })
-      .addCase(login.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message ?? 'Login failed';
-      })
       .addCase(initAuth.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.token = action.payload.accessToken;
