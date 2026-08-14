@@ -290,14 +290,23 @@ export class TripsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // If no driver accepts in 45 seconds, retry with broader radius
     setTimeout(async () => {
-      const stillPending = await this.prisma.trip.findUnique({
-        where: { id: trip.id, status: 'REQUESTED' } as any,
-      });
-      if (!stillPending) return;
-      const remaining = allDrivers.filter((d) => !targets.find((t) => t.userId === d.userId));
-      remaining.forEach((driver) => {
-        this.server.to(`user:${driver.userId}`).emit('server:new-trip-request', payload);
-      });
+      try {
+        // `status` isn't part of Trip's unique index, so this must be findFirst,
+        // not findUnique — findUnique with a non-unique where crashes with a
+        // PrismaClientValidationError, and since this runs detached in a
+        // setTimeout with nothing awaiting it, that becomes an unhandled
+        // rejection that took down the whole backend process (Node 15+ default).
+        const stillPending = await this.prisma.trip.findFirst({
+          where: { id: trip.id, status: 'REQUESTED' },
+        });
+        if (!stillPending) return;
+        const remaining = allDrivers.filter((d) => !targets.find((t) => t.userId === d.userId));
+        remaining.forEach((driver) => {
+          this.server.to(`user:${driver.userId}`).emit('server:new-trip-request', payload);
+        });
+      } catch (err) {
+        console.error('Trip request retry-broadcast failed:', err);
+      }
     }, 45000);
   }
 
